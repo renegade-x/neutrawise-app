@@ -22,13 +22,13 @@ This document tracks the execution progress of the `implementation_plan_v2.md`. 
 ---
 
 ## Phase 2: Authentication & Onboarding (Weeks 4–5)
-**Status: ⏳ NOT STARTED**
+**Status: ✅ COMPLETED**
 
-### Pending Tasks
-- [ ] 2.1 Supabase Auth Integration (Email/Password)
-- [ ] 2.2 Onboarding Screens (Swiper, Welcome)
-- [ ] 2.3 User Profile Setup Flow (Transport, Food, Energy inputs)
-- [ ] 2.4 Baseline CO₂ Calculation (Save to DB on completion)
+### Completed Tasks
+- [x] 2.1 Supabase Auth Integration (Email/Password)
+- [x] 2.2 Onboarding Screens (Swiper, Welcome)
+- [x] 2.3 User Profile Setup Flow (Transport, Food, Energy inputs)
+- [x] 2.4 Baseline CO₂ Calculation (Save to DB on completion)
 
 ---
 
