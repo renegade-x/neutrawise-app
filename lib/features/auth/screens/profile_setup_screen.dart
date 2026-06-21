@@ -31,7 +31,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   void _submitProfile() async {
     setState(() => _isLoading = true);
-    
+
     final input = SignUpProfileInput(
       primaryTransport: _primaryTransport,
       homeType: _homeType,
@@ -97,8 +97,18 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               value: _primaryTransport,
               dropdownColor: AppColors.surfaceDark,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Primary Transport', border: OutlineInputBorder()),
-              items: ['car', 'motorcycle', 'bus', 'train', 'bicycle', 'walking'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
+              decoration: const InputDecoration(
+                labelText: 'Primary Transport',
+                border: OutlineInputBorder(),
+              ),
+              items: ['car', 'motorcycle', 'bus', 'train', 'bicycle', 'walking']
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(e.toUpperCase()),
+                    ),
+                  )
+                  .toList(),
               onChanged: (val) => setState(() => _primaryTransport = val!),
             ),
             isActive: _currentStep >= 0,
@@ -111,14 +121,26 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   value: _homeType,
                   dropdownColor: AppColors.surfaceDark,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Home Type', border: OutlineInputBorder()),
-                  items: ['apartment', 'house'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
+                  decoration: const InputDecoration(
+                    labelText: 'Home Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ['apartment', 'house']
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (val) => setState(() => _homeType = val!),
                 ),
                 TextFormField(
                   initialValue: '$_monthlyKwh',
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Monthly Electricity (kWh)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Monthly Electricity (kWh)',
+                  ),
                   onChanged: (val) => _monthlyKwh = double.tryParse(val) ?? 300,
                 ),
                 SwitchListTile(
@@ -136,8 +158,25 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               value: _dietaryPreference,
               dropdownColor: AppColors.surfaceDark,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Dietary Preference', border: OutlineInputBorder()),
-              items: ['meat_heavy', 'omnivore', 'pescatarian', 'vegetarian', 'vegan'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
+              decoration: const InputDecoration(
+                labelText: 'Dietary Preference',
+                border: OutlineInputBorder(),
+              ),
+              items:
+                  [
+                        'meat_heavy',
+                        'omnivore',
+                        'pescatarian',
+                        'vegetarian',
+                        'vegan',
+                      ]
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
               onChanged: (val) => setState(() => _dietaryPreference = val!),
             ),
             isActive: _currentStep >= 2,

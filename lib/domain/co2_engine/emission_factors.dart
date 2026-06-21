@@ -1,7 +1,7 @@
 class EmissionFactors {
   static const double gridIntensityPK = 0.45; // kg CO2e / kWh
   static const double naturalGasFactor = 0.20; // kg CO2e / kWh thermal
-  
+
   static const Map<String, double> dietaryFactors = {
     'meat_heavy': 7.2,
     'omnivore': 5.5,
@@ -9,7 +9,7 @@ class EmissionFactors {
     'vegetarian': 3.8,
     'vegan': 2.9,
   };
-  
+
   static const Map<String, double> baseTransportFactors = {
     'car_petrol_small': 0.18,
     'car_petrol_medium': 0.23,
@@ -26,7 +26,7 @@ class EmissionFactors {
     'bicycle': 0.0,
     'walking': 0.0,
   };
-  
+
   static const Map<String, double> vehicleAgeMultipliers = {
     'pre_2000': 1.15,
     '2000_2009': 1.05,
@@ -63,23 +63,35 @@ class EmissionFactors {
   static String mapOFFCategoryToFactorKey(String categories) {
     final catLower = categories.toLowerCase();
     if (catLower.contains('beef') || catLower.contains('veal')) return 'beef';
-    if (catLower.contains('shrimp') || catLower.contains('prawn')) return 'shrimp_farmed';
-    if (catLower.contains('lamb') || catLower.contains('mutton')) return 'lamb_mutton';
+    if (catLower.contains('shrimp') || catLower.contains('prawn'))
+      return 'shrimp_farmed';
+    if (catLower.contains('lamb') || catLower.contains('mutton'))
+      return 'lamb_mutton';
     if (catLower.contains('butter')) return 'butter';
     if (catLower.contains('chocolate')) return 'chocolate';
     if (catLower.contains('pork') || catLower.contains('pig')) return 'pork';
-    if (catLower.contains('chicken') || catLower.contains('poultry')) return 'poultry_chicken';
-    if (catLower.contains('fish') || catLower.contains('seafood')) return 'fish_wild';
+    if (catLower.contains('chicken') || catLower.contains('poultry'))
+      return 'poultry_chicken';
+    if (catLower.contains('fish') || catLower.contains('seafood'))
+      return 'fish_wild';
     if (catLower.contains('cheese')) return 'cheese';
-    if (catLower.contains('milk') || catLower.contains('dairy')) return 'milk_dairy';
+    if (catLower.contains('milk') || catLower.contains('dairy'))
+      return 'milk_dairy';
     if (catLower.contains('egg')) return 'eggs';
-    if (catLower.contains('yogurt') || catLower.contains('yoghurt')) return 'yogurt';
+    if (catLower.contains('yogurt') || catLower.contains('yoghurt'))
+      return 'yogurt';
     if (catLower.contains('tofu') || catLower.contains('soy')) return 'tofu';
     if (catLower.contains('rice')) return 'rice_white';
-    if (catLower.contains('pasta') || catLower.contains('noodle')) return 'pasta';
-    if (catLower.contains('bread') || catLower.contains('wheat')) return 'wheat_bread';
-    if (catLower.contains('legume') || catLower.contains('lentil') || catLower.contains('bean')) return 'legumes_dried';
-    if (catLower.contains('nut') || catLower.contains('almond')) return 'nuts_mixed';
+    if (catLower.contains('pasta') || catLower.contains('noodle'))
+      return 'pasta';
+    if (catLower.contains('bread') || catLower.contains('wheat'))
+      return 'wheat_bread';
+    if (catLower.contains('legume') ||
+        catLower.contains('lentil') ||
+        catLower.contains('bean'))
+      return 'legumes_dried';
+    if (catLower.contains('nut') || catLower.contains('almond'))
+      return 'nuts_mixed';
     if (catLower.contains('coffee')) return 'coffee_brewed';
     if (catLower.contains('tea')) return 'tea';
     if (catLower.contains('potato')) return 'potatoes';

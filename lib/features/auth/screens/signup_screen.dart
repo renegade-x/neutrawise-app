@@ -14,7 +14,7 @@ class SignUpScreen extends ConsumerStatefulWidget {
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -23,10 +23,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   void _signUp() {
-    ref.read(authProvider.notifier).signUp(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
+    ref
+        .read(authProvider.notifier)
+        .signUp(_emailController.text.trim(), _passwordController.text);
   }
 
   @override

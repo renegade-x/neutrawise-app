@@ -4,13 +4,13 @@ class SignUpProfileInput {
   final String? engineSize;
   final String? vehicleAge;
   final double? avgDailyKm;
-  
+
   final String homeType;
   final int residents;
   final double monthlyKwh;
   final String heatingType;
   final bool hasSolar;
-  
+
   final String dietaryPreference;
 
   SignUpProfileInput({

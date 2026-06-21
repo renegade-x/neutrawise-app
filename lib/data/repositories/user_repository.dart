@@ -2,9 +2,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/domain/models/user_profile.dart';
 
-final userRepositoryProvider = Provider((ref) => UserRepository(Supabase.instance.client));
+final userRepositoryProvider = Provider(
+  (ref) => UserRepository(Supabase.instance.client),
+);
 
-final userProfileProvider = FutureProvider.family<UserProfile?, String>((ref, userId) async {
+final userProfileProvider = FutureProvider.family<UserProfile?, String>((
+  ref,
+  userId,
+) async {
   return ref.watch(userRepositoryProvider).getUserProfile(userId);
 });
 
@@ -15,10 +20,14 @@ class UserRepository {
 
   Future<UserProfile?> getUserProfile(String userId) async {
     try {
-      final response = await _client.from('users').select().eq('id', userId).single();
+      final response = await _client
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .single();
       return UserProfile.fromJson(response);
     } catch (e) {
-      return null; 
+      return null;
     }
   }
 

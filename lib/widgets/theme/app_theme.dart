@@ -3,7 +3,8 @@ import 'app_colors.dart';
 import 'app_typography.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme => darkTheme; // Light mode deferred for later phases
+  static ThemeData get lightTheme =>
+      darkTheme; // Light mode deferred for later phases
 
   static ThemeData get darkTheme {
     return ThemeData(
@@ -24,10 +25,14 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.surfaceDark,
-        elevation: 0, // Depth achieved via border and slight color difference on true black
+        elevation:
+            0, // Depth achieved via border and slight color difference on true black
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
+          ),
         ),
       ),
     );

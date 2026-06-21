@@ -8,7 +8,10 @@ import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/features/activity/screens/activity_log_sheet.dart';
 
-final recentLogsProvider = StreamProvider.family<List<DailyLog>, String>((ref, userId) {
+final recentLogsProvider = StreamProvider.family<List<DailyLog>, String>((
+  ref,
+  userId,
+) {
   return ref.watch(activityRepositoryProvider).watchRecentLogs(userId);
 });
 
@@ -19,14 +22,18 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    if (user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (user == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     final profileAsync = ref.watch(userProfileProvider(user.id));
     final logsAsync = ref.watch(recentLogsProvider(user.id));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -34,24 +41,28 @@ class DashboardScreen extends ConsumerWidget {
               ref.read(authProvider.notifier).signOut();
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {},
-          )
+          IconButton(icon: const Icon(Icons.settings), onPressed: () {}),
         ],
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
         data: (profile) {
-          if (profile == null) return const Center(child: Text('Profile not found'));
+          if (profile == null)
+            return const Center(child: Text('Profile not found'));
 
           return logsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, st) => Center(child: Text('Error loading logs: $e')),
             data: (logs) {
-              final todayLog = logs.where((l) => l.date == DateTime.now().toIso8601String().substring(0, 10)).firstOrNull;
-              
+              final todayLog = logs
+                  .where(
+                    (l) =>
+                        l.date ==
+                        DateTime.now().toIso8601String().substring(0, 10),
+                  )
+                  .firstOrNull;
+
               return SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
@@ -64,30 +75,55 @@ class DashboardScreen extends ConsumerWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Hello, ${profile.name}', style: Theme.of(context).textTheme.headlineMedium),
+                              Text(
+                                'Hello, ${profile.name}',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineMedium,
+                              ),
                               const SizedBox(height: 4),
-                              Text("Let's make an impact today.", style: TextStyle(color: AppColors.textSecondaryDark)),
+                              Text(
+                                "Let's make an impact today.",
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryDark,
+                                ),
+                              ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceDark,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: AppColors.warning.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.local_fire_department, color: AppColors.warning, size: 20),
+                                const Icon(
+                                  Icons.local_fire_department,
+                                  color: AppColors.warning,
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 4),
-                                Text('${profile.currentStreak}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning)),
+                                Text(
+                                  '${profile.currentStreak}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.warning,
+                                  ),
+                                ),
                               ],
                             ),
-                          )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 32),
-                      
+
                       // Ring Chart
                       Center(
                         child: CustomPaint(
@@ -104,12 +140,25 @@ class DashboardScreen extends ConsumerWidget {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('${(todayLog?.totalDailyCo2 ?? 0).toStringAsFixed(1)}', 
-                                  style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 48)),
-                                const Text('kg CO₂e', style: TextStyle(fontSize: 14)),
+                                Text(
+                                  '${(todayLog?.totalDailyCo2 ?? 0).toStringAsFixed(1)}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .displayMedium
+                                      ?.copyWith(fontSize: 48),
+                                ),
+                                const Text(
+                                  'kg CO₂e',
+                                  style: TextStyle(fontSize: 14),
+                                ),
                                 const SizedBox(height: 8),
-                                Text('vs ${(profile.totalDailyBaselineCo2 ?? 0).toStringAsFixed(1)} avg', 
-                                  style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                                Text(
+                                  'vs ${(profile.totalDailyBaselineCo2 ?? 0).toStringAsFixed(1)} avg',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondaryDark,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -120,24 +169,50 @@ class DashboardScreen extends ConsumerWidget {
                       // Category Cards
                       Row(
                         children: [
-                          Expanded(child: _CategoryCard(title: 'Transport', co2: todayLog?.transportCo2 ?? 0, icon: Icons.directions_car, color: AppColors.primaryBlue)),
+                          Expanded(
+                            child: _CategoryCard(
+                              title: 'Transport',
+                              co2: todayLog?.transportCo2 ?? 0,
+                              icon: Icons.directions_car,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _CategoryCard(title: 'Food', co2: todayLog?.foodCo2 ?? 0, icon: Icons.restaurant, color: AppColors.primaryGreen)),
+                          Expanded(
+                            child: _CategoryCard(
+                              title: 'Food',
+                              co2: todayLog?.foodCo2 ?? 0,
+                              icon: Icons.restaurant,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _CategoryCard(title: 'Energy', co2: todayLog?.energyCo2 ?? 0, icon: Icons.bolt, color: AppColors.warning)),
+                          Expanded(
+                            child: _CategoryCard(
+                              title: 'Energy',
+                              co2: todayLog?.energyCo2 ?? 0,
+                              icon: Icons.bolt,
+                              color: AppColors.warning,
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
               );
-            }
+            },
           );
-        }
+        },
       ),
       floatingActionButton: logsAsync.maybeWhen(
         data: (logs) {
-          final todayLog = logs.where((l) => l.date == DateTime.now().toIso8601String().substring(0, 10)).firstOrNull;
+          final todayLog = logs
+              .where(
+                (l) =>
+                    l.date == DateTime.now().toIso8601String().substring(0, 10),
+              )
+              .firstOrNull;
           return FloatingActionButton(
             backgroundColor: AppColors.primaryGreen,
             child: const Icon(Icons.add, color: Colors.white),
@@ -174,7 +249,12 @@ class _CategoryCard extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _CategoryCard({required this.title, required this.co2, required this.icon, required this.color});
+  const _CategoryCard({
+    required this.title,
+    required this.co2,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +270,10 @@ class _CategoryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(title, style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 4),
-          Text('${co2.toStringAsFixed(1)} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            '${co2.toStringAsFixed(1)} kg',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -228,13 +311,13 @@ class RingChartPainter extends CustomPainter {
 
     // We scale the ring such that 1 full circle = baseline.
     // If total > baseline, we cap at 1 full circle for visual simplicity (or overflow).
-    double factor = total > baseline ? (baseline / total) : 1.0; 
+    double factor = total > baseline ? (baseline / total) : 1.0;
     // Actually, let's just make the segments proportional to the total if over baseline,
     // and if under baseline, the unfilled part is baseline - total.
-    
+
     double startAngle = -pi / 2;
     final sweepTotal = (total / baseline).clamp(0.0, 1.0) * 2 * pi;
-    
+
     void drawSegment(double co2, Color color) {
       if (co2 == 0) return;
       final sweepAngle = (co2 / total) * sweepTotal;
@@ -243,7 +326,7 @@ class RingChartPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeWidth = strokeWidth;
-      
+
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         startAngle,

@@ -17,17 +17,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<Map<String, String>> _slides = [
     {
       'title': 'Track Your Impact',
-      'description': 'Log your daily transport, food, and energy habits to understand your carbon footprint.',
+      'description':
+          'Log your daily transport, food, and energy habits to understand your carbon footprint.',
       'icon': 'eco',
     },
     {
       'title': 'Level Up for the Planet',
-      'description': 'Earn XP, unlock badges, and maintain streaks by making eco-friendly choices.',
+      'description':
+          'Earn XP, unlock badges, and maintain streaks by making eco-friendly choices.',
       'icon': 'military_tech',
     },
     {
       'title': 'Join the Community',
-      'description': 'See how you rank on global and city leaderboards and compete with friends.',
+      'description':
+          'See how you rank on global and city leaderboards and compete with friends.',
       'icon': 'public',
     },
   ];
@@ -91,8 +94,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         const SizedBox(height: 16),
                         Text(
                           slide['description']!,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color
+                                    ?.withValues(alpha: 0.7),
                               ),
                           textAlign: TextAlign.center,
                         ),
@@ -112,7 +120,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: _currentIndex == index ? 24 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _currentIndex == index ? AppColors.primaryGreen : AppColors.primaryGreen.withValues(alpha: 0.2),
+                    color: _currentIndex == index
+                        ? AppColors.primaryGreen
+                        : AppColors.primaryGreen.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -122,7 +132,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: PrimaryButton(
-                text: _currentIndex == _slides.length - 1 ? 'Get Started' : 'Next',
+                text: _currentIndex == _slides.length - 1
+                    ? 'Get Started'
+                    : 'Next',
                 onPressed: () {
                   if (_currentIndex == _slides.length - 1) {
                     context.push('/signup');

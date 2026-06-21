@@ -23,7 +23,9 @@ class PrimaryButton extends StatelessWidget {
       width: width,
       height: 50,
       decoration: BoxDecoration(
-        gradient: (isLoading || onPressed == () {}) ? null : AppColors.primaryGradient,
+        gradient: (isLoading || onPressed == () {})
+            ? null
+            : AppColors.primaryGradient,
         color: (isLoading || onPressed == () {}) ? AppColors.surfaceDark : null,
         borderRadius: BorderRadius.circular(12),
       ),

@@ -20,12 +20,12 @@ class AuthStateData {
   });
 
   factory AuthStateData.initial() => AuthStateData(
-        isAuthenticated: false,
-        user: null,
-        loading: true,
-        error: null,
-        hasProfileSetup: false,
-      );
+    isAuthenticated: false,
+    user: null,
+    loading: true,
+    error: null,
+    hasProfileSetup: false,
+  );
 
   AuthStateData copyWith({
     bool? isAuthenticated,
@@ -63,9 +63,9 @@ class AuthNotifier extends Notifier<AuthStateData> {
         state = state.copyWith(loading: true);
         final userRepo = ref.read(userRepositoryProvider);
         final profile = await userRepo.getUserProfile(user.id);
-        
+
         await ref.read(syncManagerProvider).init();
-        
+
         state = state.copyWith(
           isAuthenticated: true,
           user: user,

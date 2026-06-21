@@ -11,7 +11,8 @@ abstract class TransportEntry with _$TransportEntry {
     @JsonKey(name: 'calculated_co2') double? calculatedCo2,
   }) = _TransportEntry;
 
-  factory TransportEntry.fromJson(Map<String, dynamic> json) => _$TransportEntryFromJson(json);
+  factory TransportEntry.fromJson(Map<String, dynamic> json) =>
+      _$TransportEntryFromJson(json);
 }
 
 @freezed
@@ -27,7 +28,8 @@ abstract class FoodEntry with _$FoodEntry {
     @JsonKey(name: 'off_barcode') String? offBarcode,
   }) = _FoodEntry;
 
-  factory FoodEntry.fromJson(Map<String, dynamic> json) => _$FoodEntryFromJson(json);
+  factory FoodEntry.fromJson(Map<String, dynamic> json) =>
+      _$FoodEntryFromJson(json);
 }
 
 @freezed
@@ -37,28 +39,41 @@ abstract class DailyLog with _$DailyLog {
   const factory DailyLog({
     @JsonKey(name: 'user_id') required String userId,
     required String date,
-    
-    @JsonKey(name: 'transport_entries') @Default([]) List<TransportEntry> transportEntries,
+
+    @JsonKey(name: 'transport_entries')
+    @Default([])
+    List<TransportEntry> transportEntries,
     @JsonKey(name: 'transport_co2') @Default(0.0) double transportCo2,
-    
+
     @JsonKey(name: 'food_entries') @Default([]) List<FoodEntry> foodEntries,
     @JsonKey(name: 'food_co2') @Default(0.0) double foodCo2,
-    
-    @JsonKey(name: 'energy_deviations') @Default([]) List<String> energyDeviations,
+
+    @JsonKey(name: 'energy_deviations')
+    @Default([])
+    List<String> energyDeviations,
     @JsonKey(name: 'energy_co2') @Default(0.0) double energyCo2,
-    
+
     @JsonKey(name: 'total_daily_co2') @Default(0.0) double totalDailyCo2,
     @JsonKey(name: 'baseline_co2') @Default(0.0) double baselineCo2,
-    @JsonKey(name: 'co2_saved_vs_baseline') @Default(0.0) double co2SavedVsBaseline,
-    @JsonKey(name: 'percent_vs_baseline') @Default(0.0) double percentVsBaseline,
+    @JsonKey(name: 'co2_saved_vs_baseline')
+    @Default(0.0)
+    double co2SavedVsBaseline,
+    @JsonKey(name: 'percent_vs_baseline')
+    @Default(0.0)
+    double percentVsBaseline,
     @JsonKey(name: 'xp_earned') @Default(0) int xpEarned,
-    
-    @JsonKey(name: 'emission_factor_version') @Default('1.0') String emissionFactorVersion,
-    
-    @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) @Default('pending') String syncStatus,
+
+    @JsonKey(name: 'emission_factor_version')
+    @Default('1.0')
+    String emissionFactorVersion,
+
+    @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false)
+    @Default('pending')
+    String syncStatus,
   }) = _DailyLog;
 
-  factory DailyLog.fromJson(Map<String, dynamic> json) => _$DailyLogFromJson(json);
+  factory DailyLog.fromJson(Map<String, dynamic> json) =>
+      _$DailyLogFromJson(json);
 
   Map<String, dynamic> toSupabaseJson() {
     final map = toJson();

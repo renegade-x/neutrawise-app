@@ -20,7 +20,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       final isAuth = authState.isAuthenticated;
-      final isLoggingIn = state.uri.path == '/login' || state.uri.path == '/signup' || state.uri.path == '/onboarding';
+      final isLoggingIn =
+          state.uri.path == '/login' ||
+          state.uri.path == '/signup' ||
+          state.uri.path == '/onboarding';
 
       if (!isAuth) {
         if (isLoggingIn) return null;
@@ -34,7 +37,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If authenticated and profile is setup
-      if (isLoggingIn || state.uri.path == '/profile-setup' || state.uri.path == '/') {
+      if (isLoggingIn ||
+          state.uri.path == '/profile-setup' ||
+          state.uri.path == '/') {
         return '/dashboard';
       }
 
@@ -43,18 +48,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+        builder: (context, state) =>
+            const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignUpScreen(),
