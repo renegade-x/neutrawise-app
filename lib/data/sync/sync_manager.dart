@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/data/repositories/activity_repository.dart';
 
@@ -69,7 +70,7 @@ class SyncManager {
           }
         } catch (e) {
           // Log error, keep as pending
-          print('Error syncing log $key: $e');
+          debugPrint('Error syncing log $key: $e');
         }
       }
     }

@@ -76,7 +76,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         _foodEntries,
         _energyDeviations,
         _energyConfirmed,
-        profile.currentStreak ?? 0,
+        profile.currentStreak,
       );
 
       await ref.read(syncManagerProvider).saveLog(log);
@@ -188,7 +188,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DropdownButtonFormField<String>(
-            value: _transportMode,
+            initialValue: _transportMode,
             dropdownColor: AppColors.surfaceDark,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
@@ -263,7 +263,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DropdownButtonFormField<String>(
-            value: _mealSlot,
+            initialValue: _mealSlot,
             dropdownColor: AppColors.surfaceDark,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
@@ -350,7 +350,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _foodCategory,
+            initialValue: _foodCategory,
             dropdownColor: AppColors.surfaceDark,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(

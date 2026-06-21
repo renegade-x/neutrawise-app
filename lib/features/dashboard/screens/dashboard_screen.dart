@@ -84,7 +84,7 @@ class DashboardScreen extends ConsumerWidget {
                                 ).textTheme.headlineMedium,
                               ),
                               const SizedBox(height: 4),
-                              Text(
+                              const Text(
                                 "Let's make an impact today.",
                                 style: TextStyle(
                                   color: AppColors.textSecondaryDark,
@@ -157,7 +157,7 @@ class DashboardScreen extends ConsumerWidget {
                                 const SizedBox(height: 8),
                                 Text(
                                   'vs ${(profile.totalDailyBaselineCo2 ?? 0).toStringAsFixed(1)} avg',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: AppColors.textSecondaryDark,
                                     fontSize: 12,
                                   ),
