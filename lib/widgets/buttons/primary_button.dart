@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neutrawise/widgets/theme/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -18,10 +19,23 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: width,
       height: 50,
+      decoration: BoxDecoration(
+        gradient: (isLoading || onPressed == () {}) ? null : AppColors.primaryGradient,
+        color: (isLoading || onPressed == () {}) ? AppColors.surfaceDark : null,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
         onPressed: isLoading ? null : onPressed,
         child: isLoading
             ? const SizedBox(
@@ -37,7 +51,7 @@ class PrimaryButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 20),
+                    Icon(icon, size: 20, color: Colors.white),
                     const SizedBox(width: 8),
                   ],
                   Text(
@@ -45,6 +59,7 @@ class PrimaryButton extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ],

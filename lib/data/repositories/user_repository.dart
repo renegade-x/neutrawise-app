@@ -4,6 +4,10 @@ import 'package:neutrawise/domain/models/user_profile.dart';
 
 final userRepositoryProvider = Provider((ref) => UserRepository(Supabase.instance.client));
 
+final userProfileProvider = FutureProvider.family<UserProfile?, String>((ref, userId) async {
+  return ref.watch(userRepositoryProvider).getUserProfile(userId);
+});
+
 class UserRepository {
   final SupabaseClient _client;
 

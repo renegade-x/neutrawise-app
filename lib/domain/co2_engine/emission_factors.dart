@@ -33,4 +33,58 @@ class EmissionFactors {
     '2010_2019': 0.95,
     'post_2020': 0.85,
   };
+
+  static const Map<String, double> foodCategoryFactors = {
+    'beef': 60.0,
+    'shrimp_farmed': 26.9,
+    'lamb_mutton': 39.2,
+    'butter': 23.8,
+    'chocolate': 19.0,
+    'pork': 12.3,
+    'poultry_chicken': 9.9,
+    'fish_wild': 3.0,
+    'cheese': 21.0,
+    'milk_dairy': 3.2,
+    'eggs': 4.5,
+    'yogurt': 2.9,
+    'tofu': 3.0,
+    'rice_white': 4.0,
+    'pasta': 1.9,
+    'wheat_bread': 1.6,
+    'legumes_dried': 0.9,
+    'nuts_mixed': 2.3,
+    'coffee_brewed': 17.0,
+    'tea': 3.5,
+    'potatoes': 0.46,
+    'vegetables_avg': 0.4,
+    'fruit_avg': 0.7,
+  };
+
+  static String mapOFFCategoryToFactorKey(String categories) {
+    final catLower = categories.toLowerCase();
+    if (catLower.contains('beef') || catLower.contains('veal')) return 'beef';
+    if (catLower.contains('shrimp') || catLower.contains('prawn')) return 'shrimp_farmed';
+    if (catLower.contains('lamb') || catLower.contains('mutton')) return 'lamb_mutton';
+    if (catLower.contains('butter')) return 'butter';
+    if (catLower.contains('chocolate')) return 'chocolate';
+    if (catLower.contains('pork') || catLower.contains('pig')) return 'pork';
+    if (catLower.contains('chicken') || catLower.contains('poultry')) return 'poultry_chicken';
+    if (catLower.contains('fish') || catLower.contains('seafood')) return 'fish_wild';
+    if (catLower.contains('cheese')) return 'cheese';
+    if (catLower.contains('milk') || catLower.contains('dairy')) return 'milk_dairy';
+    if (catLower.contains('egg')) return 'eggs';
+    if (catLower.contains('yogurt') || catLower.contains('yoghurt')) return 'yogurt';
+    if (catLower.contains('tofu') || catLower.contains('soy')) return 'tofu';
+    if (catLower.contains('rice')) return 'rice_white';
+    if (catLower.contains('pasta') || catLower.contains('noodle')) return 'pasta';
+    if (catLower.contains('bread') || catLower.contains('wheat')) return 'wheat_bread';
+    if (catLower.contains('legume') || catLower.contains('lentil') || catLower.contains('bean')) return 'legumes_dried';
+    if (catLower.contains('nut') || catLower.contains('almond')) return 'nuts_mixed';
+    if (catLower.contains('coffee')) return 'coffee_brewed';
+    if (catLower.contains('tea')) return 'tea';
+    if (catLower.contains('potato')) return 'potatoes';
+    if (catLower.contains('fruit')) return 'fruit_avg';
+    if (catLower.contains('vegetable')) return 'vegetables_avg';
+    return 'vegetables_avg';
+  }
 }

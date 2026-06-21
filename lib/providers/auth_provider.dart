@@ -1,18 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/data/repositories/auth_repository.dart';
+import 'package:neutrawise/data/repositories/user_repository.dart';
+import 'package:neutrawise/data/sync/sync_manager.dart';
 
 class AuthStateData {
   final bool isAuthenticated;
   final User? user;
   final bool loading;
   final String? error;
+  final bool hasProfileSetup;
 
   AuthStateData({
     required this.isAuthenticated,
     required this.user,
     required this.loading,
     required this.error,
+    required this.hasProfileSetup,
   });
 
   factory AuthStateData.initial() => AuthStateData(
@@ -20,6 +24,7 @@ class AuthStateData {
         user: null,
         loading: true,
         error: null,
+        hasProfileSetup: false,
       );
 
   AuthStateData copyWith({
@@ -27,12 +32,14 @@ class AuthStateData {
     User? user,
     bool? loading,
     String? error,
+    bool? hasProfileSetup,
   }) {
     return AuthStateData(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       user: user ?? this.user,
       loading: loading ?? this.loading,
       error: error,
+      hasProfileSetup: hasProfileSetup ?? this.hasProfileSetup,
     );
   }
 }
@@ -43,20 +50,26 @@ class AuthNotifier extends Notifier<AuthStateData> {
   @override
   AuthStateData build() {
     _authRepo = ref.watch(authRepositoryProvider);
-    // Use Future.microtask to avoid modifying providers during build phase
     Future.microtask(() => _initializeSession());
     return AuthStateData.initial();
   }
 
   void _initializeSession() {
-    _authRepo.authStateChanges.listen((data) {
+    _authRepo.authStateChanges.listen((data) async {
       final session = data.session;
       final user = session?.user;
 
       if (user != null) {
+        state = state.copyWith(loading: true);
+        final userRepo = ref.read(userRepositoryProvider);
+        final profile = await userRepo.getUserProfile(user.id);
+        
+        await ref.read(syncManagerProvider).init();
+        
         state = state.copyWith(
           isAuthenticated: true,
           user: user,
+          hasProfileSetup: profile != null,
           loading: false,
           error: null,
         );
@@ -91,6 +104,10 @@ class AuthNotifier extends Notifier<AuthStateData> {
     } catch (e) {
       state = state.copyWith(error: e.toString(), loading: false);
     }
+  }
+
+  void markProfileSetupComplete() {
+    state = state.copyWith(hasProfileSetup: true);
   }
 }
 

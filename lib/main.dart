@@ -40,7 +40,7 @@ class MyApp extends ConsumerWidget {
       title: 'NeutraWise',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       routerConfig: goRouter,
       debugShowCheckedModeBanner: false,
     );

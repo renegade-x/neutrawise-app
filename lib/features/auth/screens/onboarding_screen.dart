@@ -80,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Icon(
                           _getIconData(slide['icon']!),
                           size: 120,
-                          color: AppColors.primary,
+                          color: AppColors.primaryGreen,
                         ),
                         const SizedBox(height: 48),
                         Text(
@@ -112,7 +112,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: _currentIndex == index ? 24 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _currentIndex == index ? AppColors.primary : AppColors.primary.withValues(alpha: 0.2),
+                    color: _currentIndex == index ? AppColors.primaryGreen : AppColors.primaryGreen.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),

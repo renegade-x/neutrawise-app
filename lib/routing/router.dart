@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
@@ -13,14 +14,27 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
+      if (authState.loading) {
+        if (state.uri.path == '/') return null;
+        return '/'; // Go to loading splash screen while checking session
+      }
+
       final isAuth = authState.isAuthenticated;
       final isLoggingIn = state.uri.path == '/login' || state.uri.path == '/signup' || state.uri.path == '/onboarding';
 
-      if (!isAuth && !isLoggingIn) return '/onboarding';
-      
-      if (isAuth && isLoggingIn) {
-        // Here we ideally check if profile setup is complete
-        // For now, redirect to dashboard
+      if (!isAuth) {
+        if (isLoggingIn) return null;
+        return '/login';
+      }
+
+      // If authenticated
+      if (!authState.hasProfileSetup) {
+        if (state.uri.path != '/profile-setup') return '/profile-setup';
+        return null;
+      }
+
+      // If authenticated and profile is setup
+      if (isLoggingIn || state.uri.path == '/profile-setup' || state.uri.path == '/') {
         return '/dashboard';
       }
 
@@ -29,7 +43,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        redirect: (_, __) => '/onboarding',
+        builder: (context, state) => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
       ),
       GoRoute(
         path: '/onboarding',

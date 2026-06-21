@@ -7,6 +7,7 @@ import 'package:neutrawise/domain/co2_engine/co2_calculator.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/widgets/buttons/primary_button.dart';
+import 'package:neutrawise/widgets/theme/app_colors.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -65,7 +66,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
       await ref.read(userRepositoryProvider).saveUserProfile(profile);
       if (mounted) {
-        context.push('/dashboard');
+        ref.read(authProvider.notifier).markProfileSetupComplete();
       }
     }
     setState(() => _isLoading = false);
@@ -94,9 +95,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             title: const Text('Transport'),
             content: DropdownButtonFormField<String>(
               value: _primaryTransport,
+              dropdownColor: AppColors.surfaceDark,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Primary Transport', border: OutlineInputBorder()),
               items: ['car', 'motorcycle', 'bus', 'train', 'bicycle', 'walking'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
               onChanged: (val) => setState(() => _primaryTransport = val!),
-              decoration: const InputDecoration(labelText: 'Primary Transport'),
             ),
             isActive: _currentStep >= 0,
           ),
@@ -106,9 +109,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               children: [
                 DropdownButtonFormField<String>(
                   value: _homeType,
+                  dropdownColor: AppColors.surfaceDark,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Home Type', border: OutlineInputBorder()),
                   items: ['apartment', 'house'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
                   onChanged: (val) => setState(() => _homeType = val!),
-                  decoration: const InputDecoration(labelText: 'Home Type'),
                 ),
                 TextFormField(
                   initialValue: '$_monthlyKwh',
@@ -129,9 +134,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             title: const Text('Food'),
             content: DropdownButtonFormField<String>(
               value: _dietaryPreference,
+              dropdownColor: AppColors.surfaceDark,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Dietary Preference', border: OutlineInputBorder()),
               items: ['meat_heavy', 'omnivore', 'pescatarian', 'vegetarian', 'vegan'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
               onChanged: (val) => setState(() => _dietaryPreference = val!),
-              decoration: const InputDecoration(labelText: 'Dietary Preference'),
             ),
             isActive: _currentStep >= 2,
           ),

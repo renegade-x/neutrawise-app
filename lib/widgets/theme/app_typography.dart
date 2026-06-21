@@ -5,43 +5,43 @@ class AppTypography {
   static TextTheme getTextTheme({required bool isDark}) {
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
-    return GoogleFonts.outfitTextTheme().copyWith(
-      displayLarge: GoogleFonts.outfit(
+    return GoogleFonts.dmSansTextTheme().copyWith(
+      displayLarge: GoogleFonts.dmSans(
         fontSize: 32,
         fontWeight: FontWeight.bold,
         color: textColor,
       ),
-      displayMedium: GoogleFonts.outfit(
+      displayMedium: GoogleFonts.dmSans(
         fontSize: 28,
         fontWeight: FontWeight.bold,
         color: textColor,
       ),
-      displaySmall: GoogleFonts.outfit(
+      displaySmall: GoogleFonts.dmSans(
         fontSize: 24,
         fontWeight: FontWeight.bold,
         color: textColor,
       ),
-      headlineMedium: GoogleFonts.outfit(
+      headlineMedium: GoogleFonts.dmSans(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: textColor,
       ),
-      titleLarge: GoogleFonts.outfit(
+      titleLarge: GoogleFonts.dmSans(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: textColor,
       ),
-      bodyLarge: GoogleFonts.inter(
+      bodyLarge: GoogleFonts.dmSans(
         fontSize: 16,
         fontWeight: FontWeight.normal,
         color: textColor,
       ),
-      bodyMedium: GoogleFonts.inter(
+      bodyMedium: GoogleFonts.dmSans(
         fontSize: 14,
         fontWeight: FontWeight.normal,
         color: textColor,
       ),
-      labelLarge: GoogleFonts.inter(
+      labelLarge: GoogleFonts.dmSans(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: textColor,
