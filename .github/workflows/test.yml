@@ -21,6 +21,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Create dummy .env file
+        run: |
+          echo "SUPABASE_URL=https://dummy.supabase.co" > .env
+          echo "SUPABASE_ANON_KEY=dummy-key" >> .env
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 
