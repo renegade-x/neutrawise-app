@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:neutrawise/domain/models/sign_up_profile_input.dart';
 import 'package:neutrawise/domain/models/user_profile.dart';
 import 'package:neutrawise/domain/co2_engine/co2_calculator.dart';
@@ -23,9 +22,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   // Form states
   String _primaryTransport = 'car';
   String _homeType = 'apartment';
-  int _residents = 2;
+  final int _residents = 2;
   double _monthlyKwh = 300;
-  String _heatingType = 'natural_gas';
+  final String _heatingType = 'natural_gas';
   bool _hasSolar = false;
   String _dietaryPreference = 'omnivore';
 
@@ -94,7 +93,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           Step(
             title: const Text('Transport'),
             content: DropdownButtonFormField<String>(
-              value: _primaryTransport,
+              initialValue: _primaryTransport,
               dropdownColor: AppColors.surfaceDark,
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
@@ -118,7 +117,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             content: Column(
               children: [
                 DropdownButtonFormField<String>(
-                  value: _homeType,
+                  initialValue: _homeType,
                   dropdownColor: AppColors.surfaceDark,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
@@ -155,7 +154,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           Step(
             title: const Text('Food'),
             content: DropdownButtonFormField<String>(
-              value: _dietaryPreference,
+              initialValue: _dietaryPreference,
               dropdownColor: AppColors.surfaceDark,
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(

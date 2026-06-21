@@ -105,20 +105,21 @@ class CO2Calculator {
     if (energyConfirmed) {
       double deltaKwh = 0.0;
       for (var deviation in energyDeviations) {
-        if (deviation == 'more_than_usual')
+        if (deviation == 'more_than_usual') {
           deltaKwh += 2.0;
-        else if (deviation == 'less_than_usual')
+        } else if (deviation == 'less_than_usual') {
           deltaKwh -= 2.0;
-        else if (deviation == 'no_ac')
+        } else if (deviation == 'no_ac') {
           deltaKwh -= 5.0;
-        else if (deviation == 'cold_showers')
+        } else if (deviation == 'cold_showers') {
           deltaKwh -= 1.5;
-        else if (deviation == 'unplugged_devices')
+        } else if (deviation == 'unplugged_devices') {
           deltaKwh -= 0.5;
-        else if (deviation == 'solar_panels_sunny')
+        } else if (deviation == 'solar_panels_sunny') {
           deltaKwh -= 4.0;
-        else if (deviation == 'solar_panels_cloudy')
+        } else if (deviation == 'solar_panels_cloudy') {
           deltaKwh -= 1.5;
+        }
       }
 
       final dailyBaselineKwh = profile.dailyEnergyBaselineKwh ?? 0.0;
@@ -152,20 +153,22 @@ class CO2Calculator {
     }
 
     double streakMultiplier = 1.0;
-    if (streakDays >= 30)
+    if (streakDays >= 30) {
       streakMultiplier = 1.5;
-    else if (streakDays >= 7)
+    } else if (streakDays >= 7) {
       streakMultiplier = 1.25;
+    }
 
     int xpEarned = (baseXP * streakMultiplier).round();
 
     if (xpEarned > 0) {
-      if (percent >= 30)
+      if (percent >= 30) {
         xpEarned += 25;
-      else if (percent >= 15)
+      } else if (percent >= 15) {
         xpEarned += 15;
-      else if (percent >= 5)
+      } else if (percent >= 5) {
         xpEarned += 8;
+      }
     }
 
     return DailyLog(

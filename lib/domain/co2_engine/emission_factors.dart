@@ -63,35 +63,45 @@ class EmissionFactors {
   static String mapOFFCategoryToFactorKey(String categories) {
     final catLower = categories.toLowerCase();
     if (catLower.contains('beef') || catLower.contains('veal')) return 'beef';
-    if (catLower.contains('shrimp') || catLower.contains('prawn'))
+    if (catLower.contains('shrimp') || catLower.contains('prawn')) {
       return 'shrimp_farmed';
-    if (catLower.contains('lamb') || catLower.contains('mutton'))
+    }
+    if (catLower.contains('lamb') || catLower.contains('mutton')) {
       return 'lamb_mutton';
+    }
     if (catLower.contains('butter')) return 'butter';
     if (catLower.contains('chocolate')) return 'chocolate';
     if (catLower.contains('pork') || catLower.contains('pig')) return 'pork';
-    if (catLower.contains('chicken') || catLower.contains('poultry'))
+    if (catLower.contains('chicken') || catLower.contains('poultry')) {
       return 'poultry_chicken';
-    if (catLower.contains('fish') || catLower.contains('seafood'))
+    }
+    if (catLower.contains('fish') || catLower.contains('seafood')) {
       return 'fish_wild';
+    }
     if (catLower.contains('cheese')) return 'cheese';
-    if (catLower.contains('milk') || catLower.contains('dairy'))
+    if (catLower.contains('milk') || catLower.contains('dairy')) {
       return 'milk_dairy';
+    }
     if (catLower.contains('egg')) return 'eggs';
-    if (catLower.contains('yogurt') || catLower.contains('yoghurt'))
+    if (catLower.contains('yogurt') || catLower.contains('yoghurt')) {
       return 'yogurt';
+    }
     if (catLower.contains('tofu') || catLower.contains('soy')) return 'tofu';
     if (catLower.contains('rice')) return 'rice_white';
-    if (catLower.contains('pasta') || catLower.contains('noodle'))
+    if (catLower.contains('pasta') || catLower.contains('noodle')) {
       return 'pasta';
-    if (catLower.contains('bread') || catLower.contains('wheat'))
+    }
+    if (catLower.contains('bread') || catLower.contains('wheat')) {
       return 'wheat_bread';
+    }
     if (catLower.contains('legume') ||
         catLower.contains('lentil') ||
-        catLower.contains('bean'))
+        catLower.contains('bean')) {
       return 'legumes_dried';
-    if (catLower.contains('nut') || catLower.contains('almond'))
+    }
+    if (catLower.contains('nut') || catLower.contains('almond')) {
       return 'nuts_mixed';
+    }
     if (catLower.contains('coffee')) return 'coffee_brewed';
     if (catLower.contains('tea')) return 'tea';
     if (catLower.contains('potato')) return 'potatoes';

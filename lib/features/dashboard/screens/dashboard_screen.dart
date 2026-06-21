@@ -22,8 +22,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    if (user == null)
+    if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     final profileAsync = ref.watch(userProfileProvider(user.id));
     final logsAsync = ref.watch(recentLogsProvider(user.id));
@@ -48,8 +49,9 @@ class DashboardScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
         data: (profile) {
-          if (profile == null)
+          if (profile == null) {
             return const Center(child: Text('Profile not found'));
+          }
 
           return logsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -141,7 +143,7 @@ class DashboardScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  '${(todayLog?.totalDailyCo2 ?? 0).toStringAsFixed(1)}',
+                                  (todayLog?.totalDailyCo2 ?? 0).toStringAsFixed(1),
                                   style: Theme.of(context)
                                       .textTheme
                                       .displayMedium
@@ -311,7 +313,6 @@ class RingChartPainter extends CustomPainter {
 
     // We scale the ring such that 1 full circle = baseline.
     // If total > baseline, we cap at 1 full circle for visual simplicity (or overflow).
-    double factor = total > baseline ? (baseline / total) : 1.0;
     // Actually, let's just make the segments proportional to the total if over baseline,
     // and if under baseline, the unfilled part is baseline - total.
 

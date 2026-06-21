@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/domain/co2_engine/emission_factors.dart';
 
@@ -67,7 +68,7 @@ class OpenFoodFactsService {
       }
       return [];
     } catch (e) {
-      print('OFF API Error: $e');
+      debugPrint('OFF API Error: $e');
       return [];
     }
   }

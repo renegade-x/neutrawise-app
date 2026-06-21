@@ -47,7 +47,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
   String _mealSlot = 'Lunch';
   final _foodNameCtrl = TextEditingController();
   String _foodCategory = 'vegetables_avg';
-  String _servingSize = 'medium';
+  final String _servingSize = 'medium';
   final _foodGramsCtrl = TextEditingController(text: '250');
   OpenFoodFactsProduct? _selectedFoodProduct;
 
@@ -88,11 +88,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       final isFirstLogOfDay = widget.existingLog == null;
 
       final updatedProfile = profile.copyWith(
-        xp: (profile.xp ?? 0) + xpDelta,
+        xp: profile.xp + xpDelta,
         currentStreak: isFirstLogOfDay
-            ? (profile.currentStreak ?? 0) + 1
+            ? profile.currentStreak + 1
             : profile.currentStreak,
-        totalCo2Saved: (profile.totalCo2Saved ?? 0.0) + savedDelta,
+        totalCo2Saved: profile.totalCo2Saved + savedDelta,
       );
       await ref.read(userRepositoryProvider).saveUserProfile(updatedProfile);
 
@@ -435,7 +435,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             title: const Text('Confirm Energy Usage for Today'),
             subtitle: const Text('Required to complete full daily log'),
             value: _energyConfirmed,
-            activeColor: AppColors.primaryGreen,
+            activeTrackColor: AppColors.primaryGreen,
             onChanged: (v) => setState(() => _energyConfirmed = v),
           ),
           const SizedBox(height: 16),
@@ -453,10 +453,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                   activeColor: AppColors.primaryBlue,
                   onChanged: (selected) {
                     setState(() {
-                      if (selected == true)
+                      if (selected == true) {
                         _energyDeviations.add(opt);
-                      else
+                      } else {
                         _energyDeviations.remove(opt);
+                      }
                     });
                   },
                 ),
