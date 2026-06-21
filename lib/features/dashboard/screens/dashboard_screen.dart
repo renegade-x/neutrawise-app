@@ -143,7 +143,8 @@ class DashboardScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  (todayLog?.totalDailyCo2 ?? 0).toStringAsFixed(1),
+                                  (todayLog?.totalDailyCo2 ?? 0)
+                                      .toStringAsFixed(1),
                                   style: Theme.of(context)
                                       .textTheme
                                       .displayMedium
