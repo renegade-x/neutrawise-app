@@ -30,4 +30,16 @@ class AuthRepository {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  Future<void> updatePassword(String newPassword) async {
+    await _auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  Future<void> deleteAccount() async {
+    final userId = currentUser?.id;
+    if (userId != null) {
+      await Supabase.instance.client.from('users').delete().eq('id', userId);
+    }
+    await signOut();
+  }
 }

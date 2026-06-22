@@ -109,6 +109,30 @@ class AuthNotifier extends Notifier<AuthStateData> {
   void markProfileSetupComplete() {
     state = state.copyWith(hasProfileSetup: true);
   }
+
+  Future<void> updatePassword(String newPassword) async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      await _authRepo.updatePassword(newPassword);
+      state = state.copyWith(loading: false);
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), loading: false);
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      await _authRepo.deleteAccount();
+      state = state.copyWith(
+        loading: false,
+        isAuthenticated: false,
+        user: null,
+      );
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), loading: false);
+    }
+  }
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthStateData>(() {

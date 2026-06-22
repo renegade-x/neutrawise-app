@@ -188,7 +188,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               children: [
                 Expanded(
                   child: PrimaryButton(
-                    text: _currentStep == 2 ? 'Finish Setup' : 'Continue',
+                    text: _currentStep == 2 ? 'Finish Setup' : 'Next',
                     onPressed: details.onStepContinue ?? () {},
                     isLoading: _isLoading,
                   ),
