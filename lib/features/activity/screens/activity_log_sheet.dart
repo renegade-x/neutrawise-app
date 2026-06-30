@@ -77,7 +77,10 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           .limit(1)
           .maybeSingle();
 
-      final results = await Future.wait<dynamic>([profileFuture, previousLogFuture]);
+      final results = await Future.wait<dynamic>([
+        profileFuture,
+        previousLogFuture,
+      ]);
       final profile = results[0];
       final previousLogResponse = results[1];
 

@@ -4,7 +4,8 @@ import 'app_typography.dart';
 
 class AppTheme {
   static final ThemeData darkTheme = _buildDarkTheme();
-  static final ThemeData lightTheme = darkTheme; // Light mode deferred for later phases
+  static final ThemeData lightTheme =
+      darkTheme; // Light mode deferred for later phases
 
   static ThemeData _buildDarkTheme() {
     return ThemeData(

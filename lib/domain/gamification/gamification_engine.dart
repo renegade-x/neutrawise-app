@@ -202,42 +202,50 @@ class GamificationEngine {
     {
       'name': 'Road to Green',
       'desc': 'Reducing transport emissions',
-      'criteria': 'Awarded when your total transport emissions are reduced by 20% or more compared to your baseline.',
+      'criteria':
+          'Awarded when your total transport emissions are reduced by 20% or more compared to your baseline.',
     },
     {
       'name': 'Conscious Plate',
       'desc': 'Sustainable eating habits',
-      'criteria': 'Awarded when you log at least 3 meatless/sustainable food choices in a week.',
+      'criteria':
+          'Awarded when you log at least 3 meatless/sustainable food choices in a week.',
     },
     {
       'name': 'Power Saver',
       'desc': 'Reducing home energy use',
-      'criteria': 'Awarded when your energy emissions are at least 15% below baseline for 5 consecutive days.',
+      'criteria':
+          'Awarded when your energy emissions are at least 15% below baseline for 5 consecutive days.',
     },
     {
       'name': 'Nature Keeper',
       'desc': 'Active nature preservation',
-      'criteria': 'Awarded when you complete at least 2 nature preservation challenges.',
+      'criteria':
+          'Awarded when you complete at least 2 nature preservation challenges.',
     },
     {
       'name': 'Mindful Consumer',
       'desc': 'Sustainable living choices',
-      'criteria': 'Awarded when you log at least 5 sustainable lifestyle/consumer choices.',
+      'criteria':
+          'Awarded when you log at least 5 sustainable lifestyle/consumer choices.',
     },
     {
       'name': 'Week Warrior 🔥',
       'desc': '7-day streak milestone',
-      'criteria': 'Awarded for logging your carbon footprint for 7 consecutive days.',
+      'criteria':
+          'Awarded for logging your carbon footprint for 7 consecutive days.',
     },
     {
       'name': 'Monthly Maven 🌿',
       'desc': '30-day streak milestone',
-      'criteria': 'Awarded for logging your carbon footprint for 30 consecutive days.',
+      'criteria':
+          'Awarded for logging your carbon footprint for 30 consecutive days.',
     },
     {
       'name': 'Century Eco 🏆',
       'desc': '100-day streak milestone',
-      'criteria': 'Awarded for logging your carbon footprint for 100 consecutive days.',
+      'criteria':
+          'Awarded for logging your carbon footprint for 100 consecutive days.',
     },
     {
       'name': 'Eco Newcomer ✨',
@@ -247,12 +255,14 @@ class GamificationEngine {
     {
       'name': 'All-Rounder 🌐',
       'desc': '1 challenge in all categories',
-      'criteria': 'Awarded when you complete at least one challenge in all available categories.',
+      'criteria':
+          'Awarded when you complete at least one challenge in all available categories.',
     },
     {
       'name': 'Carbon Neutral 🌍',
       'desc': 'Reach Level 10',
-      'criteria': 'Awarded when you reach Level 10 of your carbon neutrality journey.',
+      'criteria':
+          'Awarded when you reach Level 10 of your carbon neutrality journey.',
     },
   ];
 }

@@ -85,9 +85,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Icon(
@@ -140,7 +138,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              metadata['criteria'] ?? 'Awarded for completing specific carbon reduction actions.',
+              metadata['criteria'] ??
+                  'Awarded for completing specific carbon reduction actions.',
               style: const TextStyle(
                 color: AppColors.textSecondaryDark,
                 fontSize: 13,
@@ -354,9 +353,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             itemBuilder: (context, index) {
                               final b = badges[index];
                               final badgeName = b['badge_name'] as String;
-                              final badgeDesc = b['badge_desc'] as String? ?? '';
+                              final badgeDesc =
+                                  b['badge_desc'] as String? ?? '';
                               return GestureDetector(
-                                onTap: () => _showBadgeDialog(badgeName, badgeDesc),
+                                onTap: () =>
+                                    _showBadgeDialog(badgeName, badgeDesc),
                                 child: Container(
                                   margin: const EdgeInsets.only(right: 12),
                                   padding: const EdgeInsets.symmetric(
