@@ -13,11 +13,13 @@ class SignUpScreen extends ConsumerStatefulWidget {
 }
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -26,7 +28,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   void _signUp() {
     ref
         .read(authProvider.notifier)
-        .signUp(_emailController.text.trim(), _passwordController.text);
+        .signUp(
+          _emailController.text.trim(),
+          _passwordController.text,
+          name: _nameController.text.trim(),
+        );
   }
 
   @override
@@ -71,6 +77,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
+              TextField(
+                controller: _nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.primaryGreen),
+                  ),
+                ),
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _emailController,
                 style: const TextStyle(color: Colors.white),

@@ -7,6 +7,14 @@ This document tracks the execution progress of the `implementation_plan_v2.md`. 
 - **Current Phase:** Phase 5 (Push Notifications & Polish)
 - **Latest Completion:** Phase 4 (Gamification, Insights & Leaderboards)
 
+### Recent Updates & Bug Fixes
+- **Router Performance Optimization:** Resolved massive UI lagging, thread blocks, and high binder transaction times by optimizing `routerProvider`. Instead of watching `authProvider` and recreating the entire `GoRouter` instance on every auth state change (which triggered expensive root-level element tree rebuilds), we introduced a persistent `AuthRefreshListenable` linked to GoRouter's `refreshListenable`, preserving the router config and navigation stack efficiently.
+- **Horizontal Chart Scroll:** Added horizontal scrolling to the Insights Emission Breakdown chart to handle weekly/monthly ranges seamlessly.
+- **Leaderboard Visibility:** Created database migration `005_fix_leaderboard_rls.sql` to adjust RLS policies for `users` and `daily_logs` SELECT permissions so all registered users are properly visible on the leaderboard.
+- **Robust Database Triggers:** Resolved database-crashing triggers on `users` level-up and `badges` inserts by writing migration `006_robust_push_triggers.sql` to execute pg_net actions dynamically, preventing crashes when the extension is not installed.
+- **Interactive Badges:** Enabled interactive taps on badges in the Eco Club showing beautiful modal dialogs detailing status, description, and earn requirements.
+- **Full Name Registration:** Added "Full Name" input field to the signup flow, which persists to the database and displays welcoming the user in the dashboard.
+
 ---
 
 ## Phase 1: Project Setup & Foundational Architecture (Weeks 1–3)

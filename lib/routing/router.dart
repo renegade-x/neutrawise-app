@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
@@ -8,12 +9,25 @@ import 'package:neutrawise/features/auth/screens/profile_setup_screen.dart';
 import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
 import 'package:neutrawise/features/auth/screens/loading_splash_screen.dart';
 
+class AuthRefreshListenable extends ChangeNotifier {
+  final Ref _ref;
+
+  AuthRefreshListenable(this._ref) {
+    _ref.listen(authProvider, (_, state) {
+      notifyListeners();
+    });
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final listenable = AuthRefreshListenable(ref);
 
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: listenable,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
+
       if (authState.loading) {
         if (state.uri.path == '/') return null;
         return '/'; // Go to loading splash screen while checking session

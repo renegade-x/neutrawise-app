@@ -16,8 +16,13 @@ class AuthRepository {
   Future<AuthResponse> signUp({
     required String email,
     required String password,
+    String? name,
   }) async {
-    return await _auth.signUp(email: email, password: password);
+    return await _auth.signUp(
+      email: email,
+      password: password,
+      data: name != null ? {'name': name} : null,
+    );
   }
 
   Future<AuthResponse> signIn({

@@ -227,7 +227,6 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                         const SizedBox(height: 16),
                         Container(
                           height: 220,
-                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceDark,
                             borderRadius: BorderRadius.circular(20),
@@ -235,12 +234,31 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                               color: Colors.white.withValues(alpha: 0.05),
                             ),
                           ),
-                          child: CustomPaint(
-                            size: Size.infinite,
-                            painter: StackedBarChartPainter(
-                              logs: recentLogs,
-                              baseline: baseline,
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double totalChartWidth = max(
+                                constraints.maxWidth,
+                                recentLogs.length * 60.0,
+                              );
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: SizedBox(
+                                    width:
+                                        totalChartWidth -
+                                        32, // account for padding
+                                    child: CustomPaint(
+                                      size: Size.infinite,
+                                      painter: StackedBarChartPainter(
+                                        logs: recentLogs,
+                                        baseline: baseline,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(height: 24),

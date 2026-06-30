@@ -172,4 +172,87 @@ class GamificationEngine {
       return currentStreak; // No log submitted yet
     }
   }
+
+  /// New streak calculation following the 5 consecutive days requirement
+  static int calculateNewStreak({
+    required int currentStreak,
+    required DateTime? lastLogTime,
+    required DateTime now,
+    required String? lastLogDateString,
+    required String todayDateString,
+  }) {
+    if (lastLogTime == null) {
+      return 0; // First log ever -> streak = 0
+    }
+
+    // If they already logged today, streak does not change
+    if (lastLogDateString == todayDateString) {
+      return currentStreak;
+    }
+
+    final timeSinceLastLog = now.difference(lastLogTime);
+    if (timeSinceLastLog.inSeconds <= 24 * 3600) {
+      return currentStreak + 1; // Consecutive day -> increment
+    } else {
+      return 0; // Missed a day -> reset to 0
+    }
+  }
+
+  static const List<Map<String, String>> badgeMetadata = [
+    {
+      'name': 'Road to Green',
+      'desc': 'Reducing transport emissions',
+      'criteria': 'Awarded when your total transport emissions are reduced by 20% or more compared to your baseline.',
+    },
+    {
+      'name': 'Conscious Plate',
+      'desc': 'Sustainable eating habits',
+      'criteria': 'Awarded when you log at least 3 meatless/sustainable food choices in a week.',
+    },
+    {
+      'name': 'Power Saver',
+      'desc': 'Reducing home energy use',
+      'criteria': 'Awarded when your energy emissions are at least 15% below baseline for 5 consecutive days.',
+    },
+    {
+      'name': 'Nature Keeper',
+      'desc': 'Active nature preservation',
+      'criteria': 'Awarded when you complete at least 2 nature preservation challenges.',
+    },
+    {
+      'name': 'Mindful Consumer',
+      'desc': 'Sustainable living choices',
+      'criteria': 'Awarded when you log at least 5 sustainable lifestyle/consumer choices.',
+    },
+    {
+      'name': 'Week Warrior 🔥',
+      'desc': '7-day streak milestone',
+      'criteria': 'Awarded for logging your carbon footprint for 7 consecutive days.',
+    },
+    {
+      'name': 'Monthly Maven 🌿',
+      'desc': '30-day streak milestone',
+      'criteria': 'Awarded for logging your carbon footprint for 30 consecutive days.',
+    },
+    {
+      'name': 'Century Eco 🏆',
+      'desc': '100-day streak milestone',
+      'criteria': 'Awarded for logging your carbon footprint for 100 consecutive days.',
+    },
+    {
+      'name': 'Eco Newcomer ✨',
+      'desc': 'First activity log',
+      'criteria': 'Awarded when you log your first activity in the app.',
+    },
+    {
+      'name': 'All-Rounder 🌐',
+      'desc': '1 challenge in all categories',
+      'criteria': 'Awarded when you complete at least one challenge in all available categories.',
+    },
+    {
+      'name': 'Carbon Neutral 🌍',
+      'desc': 'Reach Level 10',
+      'criteria': 'Awarded when you reach Level 10 of your carbon neutrality journey.',
+    },
+  ];
 }

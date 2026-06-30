@@ -62,9 +62,14 @@ class AuthNotifier extends Notifier<AuthStateData> {
       if (user != null) {
         state = state.copyWith(loading: true);
         final userRepo = ref.read(userRepositoryProvider);
-        final profile = await userRepo.getUserProfile(user.id);
+        final syncManager = ref.read(syncManagerProvider);
 
-        await ref.read(syncManagerProvider).init();
+        final results = await Future.wait<dynamic>([
+          userRepo.getUserProfile(user.id),
+          syncManager.init(),
+        ]);
+
+        final profile = results[0];
 
         state = state.copyWith(
           isAuthenticated: true,
@@ -79,10 +84,10 @@ class AuthNotifier extends Notifier<AuthStateData> {
     });
   }
 
-  Future<void> signUp(String email, String password) async {
+  Future<void> signUp(String email, String password, {String? name}) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      await _authRepo.signUp(email: email, password: password);
+      await _authRepo.signUp(email: email, password: password, name: name);
     } catch (e) {
       state = state.copyWith(error: e.toString(), loading: false);
     }

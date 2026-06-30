@@ -20,19 +20,86 @@ class UserRepository {
 
   Future<UserProfile?> getUserProfile(String userId) async {
     try {
-      final response = await _client
+      final userFuture = _client
           .from('users')
           .select()
           .eq('id', userId)
           .single();
-      return UserProfile.fromJson(response);
+
+      final latestLogFuture = _client
+          .from('daily_logs')
+          .select('created_at')
+          .eq('user_id', userId)
+          .order('date', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final results = await Future.wait([userFuture, latestLogFuture]);
+      final response = results[0]!;
+      final latestLog = results[1];
+
+      var profile = UserProfile.fromJson(response);
+
+      final now = DateTime.now();
+
+      // 1. Calculate active days dynamically from the time user signed up
+      bool profileChanged = false;
+      int calculatedDaysActive = profile.daysActive;
+      if (profile.createdAt == null) {
+        profile = profile.copyWith(createdAt: DateTime.now().toIso8601String());
+        calculatedDaysActive = 1;
+        profileChanged = true;
+      } else {
+        final signupDateTime = DateTime.parse(profile.createdAt!);
+        final signupDate = DateTime(
+          signupDateTime.year,
+          signupDateTime.month,
+          signupDateTime.day,
+        );
+        final todayDate = DateTime(now.year, now.month, now.day);
+        calculatedDaysActive = todayDate.difference(signupDate).inDays + 1;
+      }
+      if (calculatedDaysActive < 1) calculatedDaysActive = 1;
+
+      // 2. Check latest activity log to handle streak expiry
+      int newStreak = profile.currentStreak;
+      if (latestLog != null) {
+        final lastLogTimeStr = latestLog['created_at'] as String?;
+        if (lastLogTimeStr != null) {
+          final lastLogTime = DateTime.parse(lastLogTimeStr);
+          // Resets to zero after 24hrs since last log
+          if (now.difference(lastLogTime).inSeconds >= 24 * 3600) {
+            newStreak = 0;
+          }
+        }
+      } else {
+        // No logs yet -> streak should be 0
+        newStreak = 0;
+      }
+
+      // If either daysActive or currentStreak or createdAt has changed, save the profile to keep the database in sync
+      if (calculatedDaysActive != profile.daysActive ||
+          newStreak != profile.currentStreak ||
+          profileChanged) {
+        profile = profile.copyWith(
+          daysActive: calculatedDaysActive,
+          currentStreak: newStreak,
+        );
+        await saveUserProfile(profile);
+      }
+
+      return profile;
     } catch (e) {
       return null;
     }
   }
 
   Future<void> saveUserProfile(UserProfile profile) async {
-    await _client.from('users').upsert(profile.toJson());
+    final json = profile.toJson();
+    if (profile.createdAt == null) {
+      json.remove('created_at');
+    }
+    await _client.from('users').upsert(json);
   }
 
   Future<Map<String, dynamic>> getNotificationPreferences(String userId) async {

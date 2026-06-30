@@ -500,36 +500,75 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
         'name': 'Road to Green',
         'desc': 'Reducing transport emissions',
         'icon': Icons.directions_car,
+        'criteria':
+            'Awarded when your total transport emissions are reduced by 20% or more compared to your baseline.',
       },
       {
         'name': 'Conscious Plate',
         'desc': 'Sustainable eating habits',
         'icon': Icons.restaurant,
+        'criteria':
+            'Awarded when you log at least 3 meatless/sustainable food choices in a week.',
       },
       {
         'name': 'Power Saver',
         'desc': 'Reducing home energy use',
         'icon': Icons.bolt,
+        'criteria':
+            'Awarded when your energy emissions are at least 15% below baseline for 5 consecutive days.',
       },
       {
         'name': 'Nature Keeper',
         'desc': 'Active nature preservation',
         'icon': Icons.eco,
+        'criteria':
+            'Awarded when you complete at least 2 nature preservation challenges.',
       },
       {
         'name': 'Mindful Consumer',
         'desc': 'Sustainable living choices',
         'icon': Icons.shopping_bag,
+        'criteria':
+            'Awarded when you log at least 5 sustainable lifestyle/consumer choices.',
       },
     ];
 
     final List<Map<String, dynamic>> specialBadges = [
-      {'name': 'Week Warrior 🔥', 'desc': '7-day streak milestone'},
-      {'name': 'Monthly Maven 🌿', 'desc': '30-day streak milestone'},
-      {'name': 'Century Eco 🏆', 'desc': '100-day streak milestone'},
-      {'name': 'Eco Newcomer ✨', 'desc': 'First activity log'},
-      {'name': 'All-Rounder 🌐', 'desc': '1 challenge in all categories'},
-      {'name': 'Carbon Neutral 🌍', 'desc': 'Reach Level 10'},
+      {
+        'name': 'Week Warrior 🔥',
+        'desc': '7-day streak milestone',
+        'criteria':
+            'Awarded for logging your carbon footprint for 7 consecutive days.',
+      },
+      {
+        'name': 'Monthly Maven 🌿',
+        'desc': '30-day streak milestone',
+        'criteria':
+            'Awarded for logging your carbon footprint for 30 consecutive days.',
+      },
+      {
+        'name': 'Century Eco 🏆',
+        'desc': '100-day streak milestone',
+        'criteria':
+            'Awarded for logging your carbon footprint for 100 consecutive days.',
+      },
+      {
+        'name': 'Eco Newcomer ✨',
+        'desc': 'First activity log',
+        'criteria': 'Awarded when you log your first activity in the app.',
+      },
+      {
+        'name': 'All-Rounder 🌐',
+        'desc': '1 challenge in all categories',
+        'criteria':
+            'Awarded when you complete at least one challenge in all available categories.',
+      },
+      {
+        'name': 'Carbon Neutral 🌍',
+        'desc': 'Reach Level 10',
+        'criteria':
+            'Awarded when you reach Level 10 of your carbon neutrality journey.',
+      },
     ];
 
     return GridView.builder(
@@ -548,56 +587,141 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
             : specialBadges[index - categoryBadges.length];
         final isEarned = earnedNames.contains(badge['name']);
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isEarned
-                  ? AppColors.primaryGreen.withValues(alpha: 0.3)
-                  : Colors.white.withValues(alpha: 0.05),
+        return GestureDetector(
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: AppColors.surfaceDark,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                title: Row(
+                  children: [
+                    Icon(
+                      badge['icon'] ?? Icons.military_tech,
+                      color: isEarned ? AppColors.primaryGreen : Colors.white24,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        badge['name'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEarned ? 'Status: Earned 🎉' : 'Status: Locked 🔒',
+                      style: TextStyle(
+                        color: isEarned
+                            ? AppColors.primaryGreen
+                            : AppColors.warning,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      badge['desc'],
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'How to Earn:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      badge['criteria'] ??
+                          'Awarded for completing specific carbon reduction actions.',
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Close',
+                      style: TextStyle(color: AppColors.primaryGreen),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isEarned
+                    ? AppColors.primaryGreen.withValues(alpha: 0.3)
+                    : Colors.white.withValues(alpha: 0.05),
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isEarned
-                      ? AppColors.primaryGreen.withValues(alpha: 0.1)
-                      : Colors.white.withValues(alpha: 0.02),
-                  shape: BoxShape.circle,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isEarned
+                        ? AppColors.primaryGreen.withValues(alpha: 0.1)
+                        : Colors.white.withValues(alpha: 0.02),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    badge['icon'] ?? Icons.military_tech,
+                    color: isEarned ? AppColors.primaryGreen : Colors.white24,
+                    size: 32,
+                  ),
                 ),
-                child: Icon(
-                  badge['icon'] ?? Icons.military_tech,
-                  color: isEarned ? AppColors.primaryGreen : Colors.white24,
-                  size: 32,
+                const SizedBox(height: 12),
+                Text(
+                  badge['name'],
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: isEarned ? Colors.white : Colors.white30,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                badge['name'],
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: isEarned ? Colors.white : Colors.white30,
+                const SizedBox(height: 4),
+                Text(
+                  badge['desc'],
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isEarned
+                        ? AppColors.textSecondaryDark
+                        : Colors.white12,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                badge['desc'],
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isEarned
-                      ? AppColors.textSecondaryDark
-                      : Colors.white12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

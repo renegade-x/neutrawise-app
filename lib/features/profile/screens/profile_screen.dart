@@ -54,6 +54,113 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  IconData _getBadgeIcon(String name) {
+    switch (name) {
+      case 'Road to Green':
+        return Icons.directions_car;
+      case 'Conscious Plate':
+        return Icons.restaurant;
+      case 'Power Saver':
+        return Icons.bolt;
+      case 'Nature Keeper':
+        return Icons.eco;
+      case 'Mindful Consumer':
+        return Icons.shopping_bag;
+      default:
+        return Icons.military_tech;
+    }
+  }
+
+  void _showBadgeDialog(String badgeName, String defaultDesc) {
+    final metadata = GamificationEngine.badgeMetadata.firstWhere(
+      (m) => m['name'] == badgeName,
+      orElse: () => {
+        'name': badgeName,
+        'desc': defaultDesc,
+        'criteria': 'Awarded for completing specific carbon reduction actions.',
+      },
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              _getBadgeIcon(badgeName),
+              color: AppColors.primaryGreen,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                badgeName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Status: Earned 🎉',
+              style: TextStyle(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              metadata['desc'] ?? defaultDesc,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontStyle: FontStyle.italic,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'How to Earn:',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              metadata['criteria'] ?? 'Awarded for completing specific carbon reduction actions.',
+              style: const TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Close',
+              style: TextStyle(color: AppColors.primaryGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -246,39 +353,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             itemCount: badges.length,
                             itemBuilder: (context, index) {
                               final b = badges[index];
-                              return Container(
-                                margin: const EdgeInsets.only(right: 12),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceDark,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: AppColors.primaryGreen.withValues(
-                                      alpha: 0.2,
-                                    ),
+                              final badgeName = b['badge_name'] as String;
+                              final badgeDesc = b['badge_desc'] as String? ?? '';
+                              return GestureDetector(
+                                onTap: () => _showBadgeDialog(badgeName, badgeDesc),
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
                                   ),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.military_tech,
-                                      color: AppColors.warning,
-                                      size: 28,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      b['badge_name'],
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceDark,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: AppColors.primaryGreen.withValues(
+                                        alpha: 0.2,
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        _getBadgeIcon(badgeName),
+                                        color: AppColors.warning,
+                                        size: 28,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        badgeName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },

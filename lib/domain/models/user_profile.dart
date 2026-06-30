@@ -49,6 +49,7 @@ abstract class UserProfile with _$UserProfile {
     @JsonKey(name: 'streak_freeze_count') @Default(0) int streakFreezeCount,
 
     @JsonKey(name: 'total_co2_saved') @Default(0.0) double totalCo2Saved,
+    @JsonKey(name: 'created_at') String? createdAt,
   }) = _UserProfile;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) =>

@@ -41,6 +41,7 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   daysActive: (json['days_active'] as num?)?.toInt() ?? 0,
   streakFreezeCount: (json['streak_freeze_count'] as num?)?.toInt() ?? 0,
   totalCo2Saved: (json['total_co2_saved'] as num?)?.toDouble() ?? 0.0,
+  createdAt: json['created_at'] as String?,
 );
 
 Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
@@ -76,4 +77,5 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'days_active': instance.daysActive,
       'streak_freeze_count': instance.streakFreezeCount,
       'total_co2_saved': instance.totalCo2Saved,
+      'created_at': instance.createdAt,
     };

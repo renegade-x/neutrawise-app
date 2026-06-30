@@ -47,7 +47,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     if (user != null) {
       final profile = UserProfile(
         id: user.id,
-        name: user.email?.split('@').first ?? 'User',
+        name:
+            user.userMetadata?['name'] as String? ??
+            user.email?.split('@').first ??
+            'User',
         email: user.email,
         primaryTransport: _primaryTransport,
         homeType: _homeType,

@@ -128,5 +128,68 @@ void main() {
         expect(streak, 5);
       });
     });
+
+    group('5-Day Cycle Streak Logic (calculateNewStreak)', () {
+      final now = DateTime.now();
+
+      test('Day 1: First log ever -> streak = 0', () {
+        final streak = GamificationEngine.calculateNewStreak(
+          currentStreak: 0,
+          lastLogTime: null,
+          now: now,
+          lastLogDateString: null,
+          todayDateString: '2026-06-01',
+        );
+        expect(streak, 0);
+      });
+
+      test('Day 2: Log within 24 hours -> streak = 1', () {
+        final lastLog = now.subtract(const Duration(hours: 23));
+        final streak = GamificationEngine.calculateNewStreak(
+          currentStreak: 0,
+          lastLogTime: lastLog,
+          now: now,
+          lastLogDateString: '2026-06-01',
+          todayDateString: '2026-06-02',
+        );
+        expect(streak, 1);
+      });
+
+      test('Day 4: Log after gap (> 24 hours) -> streak = 0', () {
+        final lastLog = now.subtract(const Duration(hours: 47));
+        final streak = GamificationEngine.calculateNewStreak(
+          currentStreak: 1,
+          lastLogTime: lastLog,
+          now: now,
+          lastLogDateString: '2026-06-02',
+          todayDateString: '2026-06-04',
+        );
+        expect(streak, 0);
+      });
+
+      test('Day 5: Log within 24 hours of Day 4 -> streak = 1', () {
+        final lastLog = now.subtract(const Duration(hours: 23));
+        final streak = GamificationEngine.calculateNewStreak(
+          currentStreak: 0,
+          lastLogTime: lastLog,
+          now: now,
+          lastLogDateString: '2026-06-04',
+          todayDateString: '2026-06-05',
+        );
+        expect(streak, 1);
+      });
+
+      test('Log again on the same day -> streak stays the same', () {
+        final lastLog = now.subtract(const Duration(hours: 2));
+        final streak = GamificationEngine.calculateNewStreak(
+          currentStreak: 3,
+          lastLogTime: lastLog,
+          now: now,
+          lastLogDateString: '2026-06-05',
+          todayDateString: '2026-06-05',
+        );
+        expect(streak, 3);
+      });
+    });
   });
 }

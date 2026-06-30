@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTypography {
+  static final TextTheme _darkTextTheme = _buildTextTheme(isDark: true);
+  static final TextTheme _lightTextTheme = _buildTextTheme(isDark: false);
+
   static TextTheme getTextTheme({required bool isDark}) {
+    return isDark ? _darkTextTheme : _lightTextTheme;
+  }
+
+  static TextTheme _buildTextTheme({required bool isDark}) {
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
     return GoogleFonts.dmSansTextTheme().copyWith(

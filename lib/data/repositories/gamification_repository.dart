@@ -59,7 +59,7 @@ class GamificationRepository {
     String userId,
     Map<String, dynamic> challenge,
   ) async {
-    await _client.from('user_challenges').insert({
+    await _client.from('user_challenges').upsert({
       'user_id': userId,
       'challenge_id': challenge['id'],
       'challenge_name': challenge['name'],
@@ -68,6 +68,7 @@ class GamificationRepository {
       'duration_days': challenge['duration'],
       'xp_reward': challenge['xp'],
       'progress_percent': 0,
+      'completed_at': null,
     });
   }
 

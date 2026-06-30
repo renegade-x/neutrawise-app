@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/domain/co2_engine/co2_calculator.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
@@ -10,6 +11,7 @@ import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
 import 'package:neutrawise/data/services/open_food_facts_service.dart';
 import 'package:neutrawise/domain/co2_engine/emission_factors.dart';
+import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 
 class ActivityLogSheet extends ConsumerStatefulWidget {
   final DailyLog? existingLog;
@@ -63,14 +65,30 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
     setState(() => _isLoading = true);
     try {
       final user = ref.read(authProvider).user;
-      final profile = await ref
-          .read(userRepositoryProvider)
-          .getUserProfile(user!.id);
+      final userRepo = ref.read(userRepositoryProvider);
+
+      // Fetch the user profile and the previous log metadata concurrently BEFORE saving the new log
+      final profileFuture = userRepo.getUserProfile(user!.id);
+      final previousLogFuture = Supabase.instance.client
+          .from('daily_logs')
+          .select('created_at, date')
+          .eq('user_id', user.id)
+          .order('date', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final results = await Future.wait<dynamic>([profileFuture, previousLogFuture]);
+      final profile = results[0];
+      final previousLogResponse = results[1];
+
+      if (profile == null) {
+        throw Exception('User profile not found');
+      }
 
       final date = DateTime.now().toIso8601String().substring(0, 10);
 
       final log = CO2Calculator.processDailyLog(
-        profile!,
+        profile,
         date,
         _transportEntries,
         _foodEntries,
@@ -85,13 +103,50 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       final savedDelta =
           log.co2SavedVsBaseline -
           (widget.existingLog?.co2SavedVsBaseline ?? 0.0);
-      final isFirstLogOfDay = widget.existingLog == null;
+
+      DateTime? lastLogTime;
+      String? lastLogDateString;
+      if (previousLogResponse != null) {
+        final lastLogTimeStr = previousLogResponse['created_at'] as String?;
+        if (lastLogTimeStr != null) {
+          lastLogTime = DateTime.parse(lastLogTimeStr);
+        }
+        lastLogDateString = previousLogResponse['date'] as String?;
+      }
+
+      final now = DateTime.now();
+      final newStreak = GamificationEngine.calculateNewStreak(
+        currentStreak: profile.currentStreak,
+        lastLogTime: lastLogTime,
+        now: now,
+        lastLogDateString: lastLogDateString,
+        todayDateString: date,
+      );
+
+      int daysActive = profile.daysActive;
+      if (profile.createdAt != null) {
+        final signupDateTime = DateTime.parse(profile.createdAt!);
+        final signupDate = DateTime(
+          signupDateTime.year,
+          signupDateTime.month,
+          signupDateTime.day,
+        );
+        final todayDate = DateTime(now.year, now.month, now.day);
+        daysActive = todayDate.difference(signupDate).inDays + 1;
+        if (daysActive < 1) daysActive = 1;
+      }
+
+      final newXp = profile.xp + xpDelta;
+      final newLevel = GamificationEngine.getLevelFromXp(newXp);
 
       final updatedProfile = profile.copyWith(
-        xp: profile.xp + xpDelta,
-        currentStreak: isFirstLogOfDay
-            ? profile.currentStreak + 1
-            : profile.currentStreak,
+        xp: newXp,
+        level: newLevel,
+        currentStreak: newStreak,
+        longestStreak: newStreak > profile.longestStreak
+            ? newStreak
+            : profile.longestStreak,
+        daysActive: daysActive,
         totalCo2Saved: profile.totalCo2Saved + savedDelta,
       );
       await ref.read(userRepositoryProvider).saveUserProfile(updatedProfile);
@@ -298,13 +353,6 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             },
             fieldViewBuilder:
                 (context, controller, focusNode, onFieldSubmitted) {
-                  // Only override controller if it's empty to not lose user text
-                  controller.addListener(() {
-                    if (_foodNameCtrl.text != controller.text) {
-                      _selectedFoodProduct = null;
-                    }
-                    _foodNameCtrl.text = controller.text;
-                  });
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
@@ -312,6 +360,12 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                       labelText: 'Food Name (Search)',
                       border: OutlineInputBorder(),
                     ),
+                    onChanged: (val) {
+                      if (_foodNameCtrl.text != val) {
+                        _selectedFoodProduct = null;
+                      }
+                      _foodNameCtrl.text = val;
+                    },
                   );
                 },
             optionsViewBuilder: (context, onSelected, options) {

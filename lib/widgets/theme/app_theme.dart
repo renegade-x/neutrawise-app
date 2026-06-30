@@ -3,10 +3,10 @@ import 'app_colors.dart';
 import 'app_typography.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme =>
-      darkTheme; // Light mode deferred for later phases
+  static final ThemeData darkTheme = _buildDarkTheme();
+  static final ThemeData lightTheme = darkTheme; // Light mode deferred for later phases
 
-  static ThemeData get darkTheme {
+  static ThemeData _buildDarkTheme() {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
