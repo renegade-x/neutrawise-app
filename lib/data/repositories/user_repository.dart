@@ -20,24 +20,11 @@ class UserRepository {
 
   Future<UserProfile?> getUserProfile(String userId) async {
     try {
-      final userFuture = _client
+      final response = await _client
           .from('users')
           .select()
           .eq('id', userId)
           .single();
-
-      final latestLogFuture = _client
-          .from('daily_logs')
-          .select('created_at')
-          .eq('user_id', userId)
-          .order('date', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      final results = await Future.wait([userFuture, latestLogFuture]);
-      final response = results[0]!;
-      final latestLog = results[1];
-
       var profile = UserProfile.fromJson(response);
 
       final now = DateTime.now();
@@ -63,6 +50,14 @@ class UserRepository {
 
       // 2. Check latest activity log to handle streak expiry
       int newStreak = profile.currentStreak;
+      final latestLog = await _client
+          .from('daily_logs')
+          .select('created_at')
+          .eq('user_id', userId)
+          .order('date', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
       if (latestLog != null) {
         final lastLogTimeStr = latestLog['created_at'] as String?;
         if (lastLogTimeStr != null) {

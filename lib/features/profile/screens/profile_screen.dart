@@ -6,6 +6,7 @@ import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/data/repositories/gamification_repository.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
+import 'package:neutrawise/widgets/animated_progress_bar.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -293,12 +294,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          LinearProgressIndicator(
+                           AnimatedProgressBar(
                             value: levelProgress,
                             backgroundColor: Colors.white10,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              AppColors.primaryGreen,
-                            ),
+                            valueColor: AppColors.primaryGreen,
                             minHeight: 8,
                             borderRadius: BorderRadius.circular(4),
                           ),

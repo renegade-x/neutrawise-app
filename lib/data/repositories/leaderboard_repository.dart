@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/domain/models/leaderboard_entry.dart';
@@ -77,42 +78,18 @@ class LeaderboardRepository {
             .select('user_id, xp_earned, users(name, avatar_url, level)')
             .gte('date', startOfWeek);
 
-        // Aggregate in Dart
-        final Map<String, Map<String, dynamic>> userAggregates = {};
-        for (var log in logs) {
-          final userId = log['user_id'] as String;
-          final xpEarned = log['xp_earned'] as int? ?? 0;
-          final userData = log['users'] as Map<String, dynamic>?;
+        // Aggregate in a background isolate asynchronously to prevent main-thread blockage
+        final List<LeaderboardEntry> sprintLeaderboard = await compute(
+          _aggregateWeeklySprintLogs,
+          logs,
+        );
 
-          if (userData == null) continue;
-
-          if (!userAggregates.containsKey(userId)) {
-            userAggregates[userId] = {
-              'id': userId,
-              'name': userData['name'],
-              'avatar_url': userData['avatar_url'],
-              'level': userData['level'] ?? 1,
-              'xp': 0,
-            };
-          }
-          userAggregates[userId]!['xp'] =
-              (userAggregates[userId]!['xp'] as int) + xpEarned;
-        }
-
-        final sortedList = userAggregates.values.toList()
-          ..sort((a, b) => (b['xp'] as int).compareTo(a['xp'] as int));
-
-        if (sortedList.isEmpty) {
+        if (sprintLeaderboard.isEmpty) {
           // Fallback to global leaderboard if no logs logged this week
           return getLeaderboard(type: 'global', limit: limit);
         }
 
-        return sortedList.asMap().entries.map((entry) {
-          final index = entry.key;
-          final json = entry.value;
-          json['rank'] = index + 1;
-          return LeaderboardEntry.fromJson(json);
-        }).toList();
+        return sprintLeaderboard;
       } else {
         // Friends (Mutual follow network, empty in v1, fallback to global)
         return getLeaderboard(type: 'global', limit: limit);
@@ -122,4 +99,37 @@ class LeaderboardRepository {
       return [];
     }
   }
+}
+
+List<LeaderboardEntry> _aggregateWeeklySprintLogs(List<dynamic> logs) {
+  final Map<String, Map<String, dynamic>> userAggregates = {};
+  for (var log in logs) {
+    final userId = log['user_id'] as String;
+    final xpEarned = log['xp_earned'] as int? ?? 0;
+    final userData = log['users'] as Map<String, dynamic>?;
+
+    if (userData == null) continue;
+
+    if (!userAggregates.containsKey(userId)) {
+      userAggregates[userId] = {
+        'id': userId,
+        'name': userData['name'],
+        'avatar_url': userData['avatar_url'],
+        'level': userData['level'] ?? 1,
+        'xp': 0,
+      };
+    }
+    userAggregates[userId]!['xp'] =
+        (userAggregates[userId]!['xp'] as int) + xpEarned;
+  }
+
+  final sortedList = userAggregates.values.toList()
+    ..sort((a, b) => (b['xp'] as int).compareTo(a['xp'] as int));
+
+  return sortedList.asMap().entries.map((entry) {
+    final index = entry.key;
+    final json = entry.value;
+    json['rank'] = index + 1;
+    return LeaderboardEntry.fromJson(json);
+  }).toList();
 }

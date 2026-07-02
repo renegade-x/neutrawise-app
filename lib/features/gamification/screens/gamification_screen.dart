@@ -6,6 +6,8 @@ import 'package:neutrawise/data/repositories/gamification_repository.dart';
 import 'package:neutrawise/data/repositories/leaderboard_repository.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
+import 'package:neutrawise/widgets/animated_progress_bar.dart';
+import 'package:neutrawise/widgets/celebration_modal.dart';
 
 class GamificationScreen extends ConsumerStatefulWidget {
   const GamificationScreen({super.key});
@@ -182,12 +184,10 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                           ],
                         ),
                         const SizedBox(height: 16),
-                        LinearProgressIndicator(
+                        AnimatedProgressBar(
                           value: levelProgress,
                           backgroundColor: Colors.white10,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppColors.primaryGreen,
-                          ),
+                          valueColor: AppColors.primaryGreen,
                           minHeight: 10,
                           borderRadius: BorderRadius.circular(5),
                         ),
@@ -402,12 +402,10 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    LinearProgressIndicator(
+                    AnimatedProgressBar(
                       value: progress,
                       backgroundColor: Colors.white10,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.primaryBlue,
-                      ),
+                      valueColor: AppColors.primaryBlue,
                       minHeight: 6,
                       borderRadius: BorderRadius.circular(3),
                     ),
@@ -466,6 +464,25 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                                         ),
                                       );
                                   ref.invalidate(userProfileProvider(userId));
+
+                                  if (mounted) {
+                                    CelebrationModal.showChallengeComplete(
+                                      context,
+                                      c['challenge_name'],
+                                      xpBonus,
+                                    );
+                                    if (newLvl > userProfile.level) {
+                                      Future.delayed(const Duration(milliseconds: 1500), () {
+                                        if (mounted) {
+                                          CelebrationModal.showLevelUp(
+                                            context,
+                                            newLvl,
+                                            GamificationEngine.getLevelTitle(newLvl),
+                                          );
+                                        }
+                                      });
+                                    }
+                                  }
                                 }
                               } else {
                                 await ref

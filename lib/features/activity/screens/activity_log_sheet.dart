@@ -12,6 +12,8 @@ import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
 import 'package:neutrawise/data/services/open_food_facts_service.dart';
 import 'package:neutrawise/domain/co2_engine/emission_factors.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
+import 'package:neutrawise/widgets/celebration_modal.dart';
+import 'package:neutrawise/routing/router.dart';
 
 class ActivityLogSheet extends ConsumerStatefulWidget {
   final DailyLog? existingLog;
@@ -65,33 +67,14 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
     setState(() => _isLoading = true);
     try {
       final user = ref.read(authProvider).user;
-      final userRepo = ref.read(userRepositoryProvider);
-
-      // Fetch the user profile and the previous log metadata concurrently BEFORE saving the new log
-      final profileFuture = userRepo.getUserProfile(user!.id);
-      final previousLogFuture = Supabase.instance.client
-          .from('daily_logs')
-          .select('created_at, date')
-          .eq('user_id', user.id)
-          .order('date', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      final results = await Future.wait<dynamic>([
-        profileFuture,
-        previousLogFuture,
-      ]);
-      final profile = results[0];
-      final previousLogResponse = results[1];
-
-      if (profile == null) {
-        throw Exception('User profile not found');
-      }
+      final profile = await ref
+          .read(userRepositoryProvider)
+          .getUserProfile(user!.id);
 
       final date = DateTime.now().toIso8601String().substring(0, 10);
 
       final log = CO2Calculator.processDailyLog(
-        profile,
+        profile!,
         date,
         _transportEntries,
         _foodEntries,
@@ -107,14 +90,23 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           log.co2SavedVsBaseline -
           (widget.existingLog?.co2SavedVsBaseline ?? 0.0);
 
+      // Fetch the latest log metadata from DB to determine previous log date and time
+      final latestLogResponse = await Supabase.instance.client
+          .from('daily_logs')
+          .select('created_at, date')
+          .eq('user_id', user.id)
+          .order('date', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
       DateTime? lastLogTime;
       String? lastLogDateString;
-      if (previousLogResponse != null) {
-        final lastLogTimeStr = previousLogResponse['created_at'] as String?;
+      if (latestLogResponse != null) {
+        final lastLogTimeStr = latestLogResponse['created_at'] as String?;
         if (lastLogTimeStr != null) {
           lastLogTime = DateTime.parse(lastLogTimeStr);
         }
-        lastLogDateString = previousLogResponse['date'] as String?;
+        lastLogDateString = latestLogResponse['date'] as String?;
       }
 
       final now = DateTime.now();
@@ -154,21 +146,33 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       );
       await ref.read(userRepositoryProvider).saveUserProfile(updatedProfile);
 
-      if (mounted) {
+      if (mounted && context.mounted) {
         // Force Dashboard to refresh manually in case Realtime isn't enabled in Supabase Cloud
         ref.invalidate(recentLogsProvider(user.id));
         ref.invalidate(userProfileProvider(user.id));
 
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Log saved! +${log.xpEarned} XP',
-              style: const TextStyle(color: Colors.white),
+
+        if (newLevel > profile.level) {
+          final rootContext = rootNavigatorKey.currentContext;
+          if (rootContext != null) {
+            CelebrationModal.showLevelUp(
+              rootContext,
+              newLevel,
+              GamificationEngine.getLevelTitle(newLevel),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Log saved! +${log.xpEarned} XP',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: AppColors.success,
             ),
-            backgroundColor: AppColors.success,
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

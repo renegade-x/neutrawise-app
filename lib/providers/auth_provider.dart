@@ -4,6 +4,8 @@ import 'package:neutrawise/data/repositories/auth_repository.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/data/sync/sync_manager.dart';
 
+import 'package:neutrawise/services/push_notification_service.dart';
+
 class AuthStateData {
   final bool isAuthenticated;
   final User? user;
@@ -62,14 +64,12 @@ class AuthNotifier extends Notifier<AuthStateData> {
       if (user != null) {
         state = state.copyWith(loading: true);
         final userRepo = ref.read(userRepositoryProvider);
-        final syncManager = ref.read(syncManagerProvider);
+        final profile = await userRepo.getUserProfile(user.id);
 
-        final results = await Future.wait<dynamic>([
-          userRepo.getUserProfile(user.id),
-          syncManager.init(),
-        ]);
+        await ref.read(syncManagerProvider).init();
 
-        final profile = results[0];
+        // Login to OneSignal
+        PushNotificationService.login(user.id);
 
         state = state.copyWith(
           isAuthenticated: true,
@@ -79,6 +79,8 @@ class AuthNotifier extends Notifier<AuthStateData> {
           error: null,
         );
       } else {
+        // Logout from OneSignal
+        PushNotificationService.logout();
         state = AuthStateData.initial().copyWith(loading: false);
       }
     });

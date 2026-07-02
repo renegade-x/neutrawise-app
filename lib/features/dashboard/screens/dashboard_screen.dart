@@ -13,6 +13,20 @@ import 'package:neutrawise/features/gamification/screens/gamification_screen.dar
 import 'package:neutrawise/features/ai_assistant/screens/ai_assistant_screen.dart';
 import 'package:neutrawise/features/profile/screens/profile_screen.dart';
 
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:neutrawise/services/push_notification_service.dart';
+import 'package:neutrawise/widgets/celebration_modal.dart';
+import 'package:neutrawise/routing/router.dart';
+class ActiveTabNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void setTab(int value) => state = value;
+}
+
+final activeTabProvider = NotifierProvider<ActiveTabNotifier, int>(ActiveTabNotifier.new);
+
 final recentLogsProvider = StreamProvider.family<List<DailyLog>, String>((
   ref,
   userId,
@@ -28,8 +42,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _currentIndex = 0;
-
   final List<Widget> _screens = const [
     _DashboardContent(),
     InsightsScreen(),
@@ -37,6 +49,59 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     AIAssistantScreen(),
     ProfileScreen(),
   ];
+
+  late final PageController _pageController;
+  RealtimeChannel? _badgesChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: ref.read(activeTabProvider));
+    PushNotificationService.initialize(ref);
+
+    final userId = ref.read(authProvider).user?.id;
+    if (userId != null) {
+      _subscribeToBadges(userId);
+    }
+  }
+
+  void _subscribeToBadges(String userId) {
+    try {
+      _badgesChannel = Supabase.instance.client
+          .channel('badges_celebration')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'badges',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'user_id',
+              value: userId,
+            ),
+            callback: (payload) {
+              final newBadge = payload.newRecord;
+              final badgeName = newBadge['badge_name'] as String? ?? 'Badge';
+              final badgeDesc = newBadge['description'] as String? ?? '';
+              final context = rootNavigatorKey.currentContext;
+              if (context != null) {
+                CelebrationModal.showBadgeEarned(context, badgeName, badgeDesc);
+              }
+            },
+          );
+      _badgesChannel?.subscribe();
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    if (_badgesChannel != null) {
+      try {
+        Supabase.instance.client.removeChannel(_badgesChannel!);
+      } catch (_) {}
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,11 +112,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     final logsAsync = ref.watch(recentLogsProvider(user.id));
+    final currentIndex = ref.watch(activeTabProvider);
+
+    ref.listen<int>(activeTabProvider, (prev, next) {
+      if (_pageController.hasClients && _pageController.page?.round() != next) {
+        _pageController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: currentIndex,
         type: BottomNavigationBarType.fixed,
         backgroundColor: AppColors.surfaceDark,
         selectedItemColor: AppColors.primaryGreen,
@@ -59,9 +139,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         showSelectedLabels: true,
         showUnselectedLabels: true,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          ref.read(activeTabProvider.notifier).setTab(index);
         },
         items: const [
           BottomNavigationBarItem(
@@ -91,7 +169,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: (_currentIndex == 0 || _currentIndex == 1)
+      floatingActionButton: (currentIndex == 0 || currentIndex == 1)
           ? logsAsync.maybeWhen(
               data: (logs) {
                 final todayLog = logs
@@ -113,6 +191,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ActivityLogSheet(existingLog: todayLog),
                     );
                   },
+                ).animate().scale(
+                  delay: 200.ms,
+                  duration: 400.ms,
+                  curve: Curves.elasticOut,
                 );
               },
               orElse: () => FloatingActionButton(
@@ -126,6 +208,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     builder: (context) => const ActivityLogSheet(),
                   );
                 },
+              ).animate().scale(
+                delay: 200.ms,
+                duration: 400.ms,
+                curve: Curves.elasticOut,
               ),
             )
           : null,
@@ -255,14 +341,11 @@ class _DashboardContent extends ConsumerWidget {
 
                       // Ring Chart
                       Center(
-                        child: CustomPaint(
-                          size: const Size(220, 220),
-                          painter: RingChartPainter(
-                            transportCo2: todayLog?.transportCo2 ?? 0,
-                            foodCo2: todayLog?.foodCo2 ?? 0,
-                            energyCo2: todayLog?.energyCo2 ?? 0,
-                            baseline: profile.totalDailyBaselineCo2 ?? 1.0,
-                          ),
+                        child: AnimatedRingChart(
+                          transportCo2: todayLog?.transportCo2 ?? 0,
+                          foodCo2: todayLog?.foodCo2 ?? 0,
+                          energyCo2: todayLog?.energyCo2 ?? 0,
+                          baseline: profile.totalDailyBaselineCo2 ?? 1.0,
                           child: SizedBox(
                             width: 220,
                             height: 220,
@@ -392,17 +475,97 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
+class AnimatedRingChart extends StatefulWidget {
+  final double transportCo2;
+  final double foodCo2;
+  final double energyCo2;
+  final double baseline;
+  final Widget child;
+
+  const AnimatedRingChart({
+    super.key,
+    required this.transportCo2,
+    required this.foodCo2,
+    required this.energyCo2,
+    required this.baseline,
+    required this.child,
+  });
+
+  @override
+  State<AnimatedRingChart> createState() => _AnimatedRingChartState();
+}
+
+class _AnimatedRingChartState extends State<AnimatedRingChart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.decelerate,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimatedRingChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.transportCo2 != widget.transportCo2 ||
+        oldWidget.foodCo2 != widget.foodCo2 ||
+        oldWidget.energyCo2 != widget.energyCo2 ||
+        oldWidget.baseline != widget.baseline) {
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return CustomPaint(
+          size: const Size(220, 220),
+          painter: RingChartPainter(
+            transportCo2: widget.transportCo2,
+            foodCo2: widget.foodCo2,
+            energyCo2: widget.energyCo2,
+            baseline: widget.baseline,
+            progress: _animation.value,
+          ),
+          child: widget.child,
+        );
+      },
+    );
+  }
+}
+
 class RingChartPainter extends CustomPainter {
   final double transportCo2;
   final double foodCo2;
   final double energyCo2;
   final double baseline;
+  final double progress;
 
   RingChartPainter({
     required this.transportCo2,
     required this.foodCo2,
     required this.energyCo2,
     required this.baseline,
+    required this.progress,
   });
 
   @override
@@ -422,7 +585,7 @@ class RingChartPainter extends CustomPainter {
     if (total == 0) return;
 
     double startAngle = -pi / 2;
-    final sweepTotal = (total / baseline).clamp(0.0, 1.0) * 2 * pi;
+    final sweepTotal = (total / baseline).clamp(0.0, 1.0) * 2 * pi * progress;
 
     void drawSegment(double co2, Color color) {
       if (co2 == 0) return;
@@ -449,7 +612,13 @@ class RingChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant RingChartPainter oldDelegate) {
+    return oldDelegate.transportCo2 != transportCo2 ||
+        oldDelegate.foodCo2 != foodCo2 ||
+        oldDelegate.energyCo2 != energyCo2 ||
+        oldDelegate.baseline != baseline ||
+        oldDelegate.progress != progress;
+  }
 }
 
 class DailyEcoTipWidget extends StatefulWidget {
