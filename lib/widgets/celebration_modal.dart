@@ -38,7 +38,11 @@ class CelebrationModal extends StatefulWidget {
     );
   }
 
-  static void showBadgeEarned(BuildContext context, String badgeName, String badgeDesc) {
+  static void showBadgeEarned(
+    BuildContext context,
+    String badgeName,
+    String badgeDesc,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -53,14 +57,19 @@ class CelebrationModal extends StatefulWidget {
     );
   }
 
-  static void showChallengeComplete(BuildContext context, String challengeName, int xpReward) {
+  static void showChallengeComplete(
+    BuildContext context,
+    String challengeName,
+    int xpReward,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => CelebrationModal(
         title: "CHALLENGE COMPLETE!",
         subtitle: challengeName,
-        description: "Excellent effort! You have successfully completed this eco challenge.",
+        description:
+            "Excellent effort! You have successfully completed this eco challenge.",
         icon: Icons.emoji_events,
         iconColor: AppColors.primaryBlue,
         xpReward: xpReward,
@@ -79,7 +88,9 @@ class _CelebrationModalState extends State<CelebrationModal> {
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
     _confettiController.play();
   }
 
@@ -121,26 +132,36 @@ class _CelebrationModalState extends State<CelebrationModal> {
                 const SizedBox(height: 12),
                 // Glowing Icon with animation
                 Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: widget.iconColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: widget.iconColor.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    size: 64,
-                    color: widget.iconColor,
-                  ),
-                )
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: widget.iconColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.iconColor.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        size: 64,
+                        color: widget.iconColor,
+                      ),
+                    )
                     .animate(onPlay: (controller) => controller.repeat())
                     .shimmer(delay: 500.ms, duration: 1800.ms)
-                    .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.1, 1.1), duration: 1000.ms, curve: Curves.easeInOutSine)
+                    .scale(
+                      begin: const Offset(0.9, 0.9),
+                      end: const Offset(1.1, 1.1),
+                      duration: 1000.ms,
+                      curve: Curves.easeInOutSine,
+                    )
                     .then()
-                    .scale(begin: const Offset(1.1, 1.1), end: const Offset(0.9, 0.9), duration: 1000.ms, curve: Curves.easeInOutSine),
+                    .scale(
+                      begin: const Offset(1.1, 1.1),
+                      end: const Offset(0.9, 0.9),
+                      duration: 1000.ms,
+                      curve: Curves.easeInOutSine,
+                    ),
                 const SizedBox(height: 24),
                 // Title
                 Text(
@@ -155,14 +176,17 @@ class _CelebrationModalState extends State<CelebrationModal> {
                 const SizedBox(height: 8),
                 // Subtitle
                 Text(
-                  widget.subtitle,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ).animate().fade(delay: 200.ms, duration: 400.ms).slideY(begin: 0.2, end: 0.0),
+                      widget.subtitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    )
+                    .animate()
+                    .fade(delay: 200.ms, duration: 400.ms)
+                    .slideY(begin: 0.2, end: 0.0),
                 const SizedBox(height: 16),
                 // Description
                 Text(
@@ -178,23 +202,34 @@ class _CelebrationModalState extends State<CelebrationModal> {
                 // XP Reward counter / visual pop
                 if (widget.xpReward != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(
-                      "+${widget.xpReward} XP",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                  )
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primaryGreen.withValues(
+                              alpha: 0.3,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          "+${widget.xpReward} XP",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                      )
                       .animate()
-                      .scale(delay: 500.ms, duration: 400.ms, curve: Curves.elasticOut)
+                      .scale(
+                        delay: 500.ms,
+                        duration: 400.ms,
+                        curve: Curves.elasticOut,
+                      )
                       .shake(delay: 900.ms, hz: 4),
                 const SizedBox(height: 24),
                 // Close button

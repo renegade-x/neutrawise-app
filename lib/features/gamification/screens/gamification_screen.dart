@@ -472,15 +472,20 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                                       xpBonus,
                                     );
                                     if (newLvl > userProfile.level) {
-                                      Future.delayed(const Duration(milliseconds: 1500), () {
-                                        if (mounted) {
-                                          CelebrationModal.showLevelUp(
-                                            context,
-                                            newLvl,
-                                            GamificationEngine.getLevelTitle(newLvl),
-                                          );
-                                        }
-                                      });
+                                      Future.delayed(
+                                        const Duration(milliseconds: 1500),
+                                        () {
+                                          if (mounted) {
+                                            CelebrationModal.showLevelUp(
+                                              context,
+                                              newLvl,
+                                              GamificationEngine.getLevelTitle(
+                                                newLvl,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      );
                                     }
                                   }
                                 }

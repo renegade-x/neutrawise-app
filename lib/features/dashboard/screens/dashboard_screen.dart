@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/services/push_notification_service.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
 import 'package:neutrawise/routing/router.dart';
+
 class ActiveTabNotifier extends Notifier<int> {
   @override
   int build() => 0;
@@ -25,7 +26,9 @@ class ActiveTabNotifier extends Notifier<int> {
   void setTab(int value) => state = value;
 }
 
-final activeTabProvider = NotifierProvider<ActiveTabNotifier, int>(ActiveTabNotifier.new);
+final activeTabProvider = NotifierProvider<ActiveTabNotifier, int>(
+  ActiveTabNotifier.new,
+);
 
 final recentLogsProvider = StreamProvider.family<List<DailyLog>, String>((
   ref,
@@ -197,22 +200,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   curve: Curves.elasticOut,
                 );
               },
-              orElse: () => FloatingActionButton(
-                backgroundColor: AppColors.primaryGreen,
-                child: const Icon(Icons.add, color: Colors.white),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: AppColors.backgroundDark,
-                    builder: (context) => const ActivityLogSheet(),
-                  );
-                },
-              ).animate().scale(
-                delay: 200.ms,
-                duration: 400.ms,
-                curve: Curves.elasticOut,
-              ),
+              orElse: () =>
+                  FloatingActionButton(
+                    backgroundColor: AppColors.primaryGreen,
+                    child: const Icon(Icons.add, color: Colors.white),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: AppColors.backgroundDark,
+                        builder: (context) => const ActivityLogSheet(),
+                      );
+                    },
+                  ).animate().scale(
+                    delay: 200.ms,
+                    duration: 400.ms,
+                    curve: Curves.elasticOut,
+                  ),
             )
           : null,
     );
@@ -507,10 +511,7 @@ class _AnimatedRingChartState extends State<AnimatedRingChart>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.decelerate,
-    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.decelerate);
     _controller.forward();
   }
 

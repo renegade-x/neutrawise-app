@@ -14,16 +14,16 @@ class PushNotificationService {
 
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
     OneSignal.initialize(appId);
-    
+
     // Request push notification permission
     OneSignal.Notifications.requestPermission(true);
-    
+
     // Handle notification tap
     OneSignal.Notifications.addClickListener((event) {
       final data = event.notification.additionalData;
       _handleNotificationTap(ref, data);
     });
-    
+
     // Handle notification received (foreground)
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
       event.notification.display();
@@ -44,11 +44,14 @@ class PushNotificationService {
     debugPrint("OneSignal logged out");
   }
 
-  static void _handleNotificationTap(WidgetRef ref, Map<String, dynamic>? data) {
+  static void _handleNotificationTap(
+    WidgetRef ref,
+    Map<String, dynamic>? data,
+  ) {
     if (data == null) return;
     final type = data['type'] as String?;
     debugPrint("Notification tapped with type: $type, data: $data");
-    
+
     switch (type) {
       case 'daily_log_reminder':
       case 'streak_milestone':
@@ -57,7 +60,9 @@ class PushNotificationService {
       case 'challenge_complete':
       case 'level_up':
       case 'badge_earned':
-        ref.read(activeTabProvider.notifier).setTab(2); // Eco Club (Gamification)
+        ref
+            .read(activeTabProvider.notifier)
+            .setTab(2); // Eco Club (Gamification)
         break;
       default:
         ref.read(activeTabProvider.notifier).setTab(0); // Default Home

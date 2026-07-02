@@ -294,7 +294,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                           AnimatedProgressBar(
+                          AnimatedProgressBar(
                             value: levelProgress,
                             backgroundColor: Colors.white10,
                             valueColor: AppColors.primaryGreen,
