@@ -59,13 +59,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: () => context.push('/signup'),
-                child: const Text('Skip'),
-              ),
-            ),
+            if (_currentIndex < _slides.length - 1)
+              Align(
+                alignment: Alignment.topRight,
+                child: TextButton(
+                  onPressed: () => context.push('/signup'),
+                  child: const Text('Skip'),
+                ),
+              )
+            else
+              const SizedBox(height: 48),
             Expanded(
               child: PageView.builder(
                 controller: _pageController,

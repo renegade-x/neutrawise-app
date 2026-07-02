@@ -7,6 +7,9 @@ class CO2Calculator {
   static Map<String, dynamic> processSignUpProfile(SignUpProfileInput input) {
     // 1. Transport Factor
     double transportFactor = 0.0;
+    final gridIntensity =
+        EmissionFactors.gridIntensityByCountry[input.country] ??
+        EmissionFactors.gridIntensityPK;
 
     if (input.primaryTransport == 'car') {
       final key = 'car_${input.fuelType}_${input.engineSize}';
@@ -15,9 +18,15 @@ class CO2Calculator {
           EmissionFactors.vehicleAgeMultipliers[input.vehicleAge] ?? 1.0;
       transportFactor = baseFactor * ageMultiplier;
     } else if (input.primaryTransport == 'ev') {
-      transportFactor =
-          EmissionFactors.baseTransportFactors['ev_efficiency']! *
-          EmissionFactors.gridIntensityPK;
+      final efficiency =
+          EmissionFactors.evEfficiencyKwhPerKm[input.engineSize] ?? 0.18;
+      transportFactor = efficiency * gridIntensity;
+    } else if (input.primaryTransport == 'motorcycle') {
+      final baseFactor =
+          EmissionFactors.baseTransportFactors['motorcycle'] ?? 0.10;
+      final ageMultiplier =
+          EmissionFactors.vehicleAgeMultipliers[input.vehicleAge] ?? 1.0;
+      transportFactor = baseFactor * ageMultiplier;
     } else {
       transportFactor =
           EmissionFactors.baseTransportFactors[input.primaryTransport] ?? 0.0;
@@ -26,18 +35,29 @@ class CO2Calculator {
     final dailyTransportCo2 = transportFactor * (input.avgDailyKm ?? 0);
 
     // 2. Energy Factor
-    double adjustedKwh = input.monthlyKwh;
-    if (input.hasSolar) {
-      adjustedKwh = adjustedKwh * 0.75; // 25% reduction estimate for solar
+    double dailyKwh = 0.0;
+    if (input.monthlyKwh != null) {
+      dailyKwh = (input.monthlyKwh! / 30) / input.residents;
+    } else {
+      final baseKwh =
+          EmissionFactors.baseDailyKwhByHome[input.homeType] ?? 15.0;
+      dailyKwh = baseKwh / input.residents;
     }
 
-    final dailyKwh = (adjustedKwh / 30) / input.residents;
-    final dailyEnergyCo2 = dailyKwh * EmissionFactors.gridIntensityPK;
+    if (input.hasSolar) {
+      dailyKwh = dailyKwh * 0.75; // 25% reduction estimate for solar
+    }
+
+    final dailyEnergyCo2 = dailyKwh * gridIntensity;
 
     // Heating
     double dailyHeatingCo2 = 0.0;
-    if (input.heatingType == 'natural_gas') {
-      dailyHeatingCo2 = 1.5; // Simplified baseline for gas
+    if (input.heatingType != 'electric' && input.heatingType != 'heat_pump') {
+      final heatingKwh =
+          EmissionFactors.heatingKwhByHome[input.homeType] ?? 0.0;
+      final heatingFactor =
+          EmissionFactors.heatingFactors[input.heatingType] ?? 0.0;
+      dailyHeatingCo2 = (heatingKwh * 0.667 / input.residents) * heatingFactor;
     }
 
     // 3. Food Factor
@@ -51,10 +71,11 @@ class CO2Calculator {
       'transport_factor': transportFactor,
       'daily_transport_co2': dailyTransportCo2,
       'daily_energy_baseline_kwh': dailyKwh,
-      'daily_energy_baseline_co2': dailyEnergyCo2,
+      'daily_energy_baseline_co2': dailyEnergyCo2 + dailyHeatingCo2,
       'daily_heating_baseline_co2': dailyHeatingCo2,
       'daily_food_baseline_co2': dailyFoodCo2,
       'total_daily_baseline_co2': totalDailyBaseline,
+      'grid_intensity': gridIntensity,
     };
   }
 

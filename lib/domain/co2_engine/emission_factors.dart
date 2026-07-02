@@ -1,37 +1,76 @@
 class EmissionFactors {
   static const double gridIntensityPK = 0.45; // kg CO2e / kWh
-  static const double naturalGasFactor = 0.20; // kg CO2e / kWh thermal
+  static const double naturalGasFactor = 0.202; // kg CO2e / kWh thermal
+
+  static const Map<String, double> gridIntensityByCountry = {
+    'PK': 0.45,
+    'US': 0.38,
+    'GB': 0.25,
+    'DE': 0.18,
+  };
+
+  static const Map<String, double> heatingFactors = {
+    'natural_gas': 0.202,
+    'lpg': 0.227,
+    'oil': 0.268,
+    'district': 0.080,
+    'biomass_wood': 0.015,
+    'coal': 0.354,
+    'electric': 0.0,
+    'heat_pump': 0.0,
+  };
+
+  static const Map<String, double> baseDailyKwhByHome = {
+    'apartment_small': 8.0,
+    'apartment_large': 12.0,
+    'house_small': 15.0,
+    'house_medium': 22.0,
+    'house_large': 30.0,
+  };
+
+  static const Map<String, double> heatingKwhByHome = {
+    'apartment_small': 12.0,
+    'apartment_large': 18.0,
+    'house_small': 25.0,
+    'house_medium': 35.0,
+    'house_large': 50.0,
+  };
+
+  static const Map<String, double> evEfficiencyKwhPerKm = {
+    'small': 0.15,
+    'medium': 0.18,
+    'large': 0.22,
+  };
 
   static const Map<String, double> dietaryFactors = {
-    'meat_heavy': 7.2,
+    'vegan': 1.5,
+    'vegetarian': 2.5,
+    'pescatarian': 3.4,
+    'flexitarian': 4.2,
     'omnivore': 5.5,
-    'pescatarian': 4.0,
-    'vegetarian': 3.8,
-    'vegan': 2.9,
+    'carnivore': 7.2,
   };
 
   static const Map<String, double> baseTransportFactors = {
     'car_petrol_small': 0.18,
     'car_petrol_medium': 0.23,
-    'car_petrol_large': 0.30,
+    'car_petrol_large': 0.28,
     'car_diesel_small': 0.17,
     'car_diesel_medium': 0.22,
-    'car_diesel_large': 0.28,
-    'car_hybrid_medium': 0.15,
-    'ev_efficiency': 0.18, // kWh / km
+    'car_diesel_large': 0.27,
+    'car_hybrid_medium': 0.12,
     'motorcycle': 0.10,
-    'bus': 0.08,
-    'train': 0.04,
-    'metro': 0.03,
+    'bus': 0.089,
+    'train': 0.041,
+    'metro': 0.035,
     'bicycle': 0.0,
     'walking': 0.0,
   };
 
   static const Map<String, double> vehicleAgeMultipliers = {
-    'pre_2000': 1.15,
-    '2000_2009': 1.05,
-    '2010_2019': 0.95,
-    'post_2020': 0.85,
+    'pre_2010': 1.15,
+    '2010_2019': 1.00,
+    '2020_plus': 0.85,
   };
 
   static const Map<String, double> foodCategoryFactors = {

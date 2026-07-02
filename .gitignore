@@ -46,6 +46,6 @@ app.*.map.json
 
 #Documents
 /Neutrawise_Algorithm_Specification_v1.0.md
-
+/inconsistency_report.md
 # Env vars
 .env
