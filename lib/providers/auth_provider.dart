@@ -86,22 +86,62 @@ class AuthNotifier extends Notifier<AuthStateData> {
     });
   }
 
-  Future<void> signUp(String email, String password, {String? name}) async {
+  Future<String?> signUp(String email, String password, {String? name}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       await _authRepo.signUp(email: email, password: password, name: name);
+      state = state.copyWith(loading: false);
+      return null;
     } catch (e) {
-      state = state.copyWith(error: e.toString(), loading: false);
+      final formattedError = _formatAuthError(e);
+      state = state.copyWith(error: formattedError, loading: false);
+      return formattedError;
     }
   }
 
-  Future<void> signIn(String email, String password) async {
+  Future<String?> signIn(String email, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
       await _authRepo.signIn(email: email, password: password);
+      state = state.copyWith(loading: false);
+      return null;
     } catch (e) {
-      state = state.copyWith(error: e.toString(), loading: false);
+      final formattedError = _formatAuthError(e);
+      state = state.copyWith(error: formattedError, loading: false);
+      return formattedError;
     }
+  }
+
+  String _formatAuthError(dynamic e) {
+    if (e is AuthException) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains('invalid login credentials') ||
+          msg.contains('invalid_credentials')) {
+        return 'The email or password you entered is incorrect. Please check your credentials and try again.';
+      } else if (msg.contains('user already registered') ||
+          msg.contains('already exists')) {
+        return 'An account with this email address already exists. Please log in or try a different email.';
+      } else if (msg.contains('password should be at least') ||
+          msg.contains('weak password')) {
+        return 'Password must be at least 6 characters long.';
+      } else if (msg.contains('invalid email') ||
+          msg.contains('email format')) {
+        return 'Please enter a valid email address format.';
+      } else if (msg.contains('email not confirmed')) {
+        return 'Your email address has not been confirmed yet. Please check your inbox.';
+      }
+      return e.message;
+    }
+    final rawMsg = e.toString();
+    if (rawMsg.contains('SocketException') ||
+        rawMsg.contains('NetworkImage') ||
+        rawMsg.contains('HandshakeException')) {
+      return 'Network connection issue. Please check your internet connection and try again.';
+    }
+    return rawMsg
+        .replaceAll('Exception: ', '')
+        .replaceAll('PostgrestException(message: ', '')
+        .trim();
   }
 
   Future<void> signOut() async {

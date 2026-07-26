@@ -40,7 +40,6 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       _energyDeviations = List.from(widget.existingLog!.energyDeviations);
       _energyConfirmed =
           widget.existingLog!.energyCo2 > 0 || _energyDeviations.isNotEmpty;
-      // simplified energy confirmed check for existing log
     }
   }
 
@@ -63,18 +62,151 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
     super.dispose();
   }
 
+  void _showSnackbar(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: isError ? Colors.redAccent : AppColors.primaryGreen,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _addTransportTrip() {
+    final text = _distanceCtrl.text.trim();
+    if (text.isEmpty) {
+      _showSnackbar('Please enter a trip distance in kilometers.');
+      return;
+    }
+    final dist = double.tryParse(text);
+    if (dist == null) {
+      _showSnackbar('Invalid distance format. Please enter a valid number.');
+      return;
+    }
+    if (dist <= 0) {
+      _showSnackbar('Distance must be greater than 0 km.');
+      return;
+    }
+    if (dist > 2000) {
+      _showSnackbar('Distance cannot exceed 2000 km per trip.');
+      return;
+    }
+
+    setState(() {
+      _transportEntries.add(
+        TransportEntry(mode: _transportMode, distanceKm: dist),
+      );
+      _distanceCtrl.clear();
+    });
+    _showSnackbar('Trip added successfully!', isError: false);
+  }
+
+  void _addMeal() {
+    final foodName = _foodNameCtrl.text.trim();
+    final gramsText = _foodGramsCtrl.text.trim();
+
+    if (foodName.isEmpty && gramsText.isEmpty) {
+      _showSnackbar('Please enter a food name and serving amount in grams.');
+      return;
+    }
+    if (foodName.isEmpty) {
+      _showSnackbar('Please enter or select a food name.');
+      return;
+    }
+    if (gramsText.isEmpty) {
+      _showSnackbar('Please enter the serving amount in grams.');
+      return;
+    }
+    final grams = double.tryParse(gramsText);
+    if (grams == null) {
+      _showSnackbar(
+        'Invalid amount format. Please enter a valid number of grams.',
+      );
+      return;
+    }
+    if (grams <= 0) {
+      _showSnackbar('Serving amount must be greater than 0 grams.');
+      return;
+    }
+    if (grams > 5000) {
+      _showSnackbar('Serving amount cannot exceed 5000 grams.');
+      return;
+    }
+
+    setState(() {
+      _foodEntries.add(
+        FoodEntry(
+          mealSlot: _mealSlot,
+          foodName: foodName,
+          category: _foodCategory,
+          servingSize: _servingSize,
+          grams: grams,
+          co2Per100g: _selectedFoodProduct?.co2Total,
+          offBarcode: _selectedFoodProduct?.id,
+        ),
+      );
+      _foodNameCtrl.clear();
+      _selectedFoodProduct = null;
+    });
+    _showSnackbar('Meal added successfully!', isError: false);
+  }
+
   void _submitLog() async {
+    // Validate empty or unsubmitted fields
+    if (_distanceCtrl.text.trim().isNotEmpty) {
+      _showSnackbar(
+        "You entered a distance of ${_distanceCtrl.text} km but haven't tapped 'Add Trip'. Tap 'Add Trip' to include it.",
+      );
+      return;
+    }
+
+    if (_foodNameCtrl.text.trim().isNotEmpty) {
+      _showSnackbar(
+        "You entered meal '${_foodNameCtrl.text}' but haven't tapped 'Add Meal'. Tap 'Add Meal' to include it.",
+      );
+      return;
+    }
+
+    if (_transportEntries.isEmpty &&
+        _foodEntries.isEmpty &&
+        !_energyConfirmed) {
+      _showSnackbar(
+        'Please log at least one trip or meal, or confirm energy usage before saving.',
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final user = ref.read(authProvider).user;
+      if (user == null) {
+        _showSnackbar('User session expired. Please log in again.');
+        return;
+      }
       final profile = await ref
           .read(userRepositoryProvider)
-          .getUserProfile(user!.id);
+          .getUserProfile(user.id);
+
+      if (profile == null) {
+        _showSnackbar('Failed to fetch user profile. Please try again.');
+        return;
+      }
 
       final date = DateTime.now().toIso8601String().substring(0, 10);
 
       final log = CO2Calculator.processDailyLog(
-        profile!,
+        profile,
         date,
         _transportEntries,
         _foodEntries,
@@ -147,7 +279,6 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       await ref.read(userRepositoryProvider).saveUserProfile(updatedProfile);
 
       if (mounted && context.mounted) {
-        // Force Dashboard to refresh manually in case Realtime isn't enabled in Supabase Cloud
         ref.invalidate(recentLogsProvider(user.id));
         ref.invalidate(userProfileProvider(user.id));
 
@@ -175,11 +306,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      _showSnackbar('Error saving log: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -281,6 +408,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           TextFormField(
             controller: _distanceCtrl,
             keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
               labelText: 'Distance (km)',
               border: OutlineInputBorder(),
@@ -290,29 +418,59 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           ElevatedButton.icon(
             icon: const Icon(Icons.add),
             label: const Text('Add Trip'),
-            onPressed: () {
-              final dist = double.tryParse(_distanceCtrl.text);
-              if (dist != null && dist > 0) {
-                setState(() {
-                  _transportEntries.add(
-                    TransportEntry(mode: _transportMode, distanceKm: dist),
-                  );
-                  _distanceCtrl.clear();
-                });
-              }
-            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: _addTransportTrip,
           ),
           const SizedBox(height: 24),
           const Text(
             'Today\'s Trips:',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          ..._transportEntries.map(
-            (e) => ListTile(
-              title: Text(e.mode.toUpperCase()),
-              trailing: Text('${e.distanceKm} km'),
+          if (_transportEntries.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'No trips added yet.',
+                style: TextStyle(
+                  color: AppColors.textSecondaryDark,
+                  fontSize: 13,
+                ),
+              ),
+            )
+          else
+            ..._transportEntries.asMap().entries.map(
+              (entry) => ListTile(
+                title: Text(
+                  entry.value.mode.toUpperCase(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${entry.value.distanceKm} km',
+                      style: const TextStyle(color: AppColors.primaryGreen),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _transportEntries.removeAt(entry.key);
+                        });
+                        _showSnackbar('Trip removed', isError: false);
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -363,6 +521,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
+                    style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
                       labelText: 'Food Name (Search)',
                       border: OutlineInputBorder(),
@@ -432,6 +591,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           TextFormField(
             controller: _foodGramsCtrl,
             keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
               labelText: 'Amount (grams)',
               border: OutlineInputBorder(),
@@ -441,39 +601,63 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           ElevatedButton.icon(
             icon: const Icon(Icons.add),
             label: const Text('Add Meal'),
-            onPressed: () {
-              final grams = double.tryParse(_foodGramsCtrl.text);
-              if (grams != null && grams > 0 && _foodNameCtrl.text.isNotEmpty) {
-                setState(() {
-                  _foodEntries.add(
-                    FoodEntry(
-                      mealSlot: _mealSlot,
-                      foodName: _foodNameCtrl.text,
-                      category: _foodCategory,
-                      servingSize: _servingSize,
-                      grams: grams,
-                      co2Per100g: _selectedFoodProduct?.co2Total,
-                      offBarcode: _selectedFoodProduct?.id,
-                    ),
-                  );
-                  _foodNameCtrl.clear();
-                  _selectedFoodProduct = null;
-                });
-              }
-            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: _addMeal,
           ),
           const SizedBox(height: 24),
           const Text(
             'Today\'s Meals:',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          ..._foodEntries.map(
-            (e) => ListTile(
-              title: Text('${e.mealSlot}: ${e.foodName}'),
-              subtitle: Text(e.category),
-              trailing: Text('${e.grams}g'),
+          if (_foodEntries.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'No meals added yet.',
+                style: TextStyle(
+                  color: AppColors.textSecondaryDark,
+                  fontSize: 13,
+                ),
+              ),
+            )
+          else
+            ..._foodEntries.asMap().entries.map(
+              (entry) => ListTile(
+                title: Text(
+                  '${entry.value.mealSlot}: ${entry.value.foodName}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  entry.value.category,
+                  style: const TextStyle(color: AppColors.textSecondaryDark),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${entry.value.grams}g',
+                      style: const TextStyle(color: AppColors.primaryGreen),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _foodEntries.removeAt(entry.key);
+                        });
+                        _showSnackbar('Meal removed', isError: false);
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -493,14 +677,23 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SwitchListTile(
-            title: const Text('Confirm Energy Usage for Today'),
-            subtitle: const Text('Required to complete full daily log'),
+            title: const Text(
+              'Confirm Energy Usage for Today',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: const Text(
+              'Required to complete full daily log',
+              style: TextStyle(color: AppColors.textSecondaryDark),
+            ),
             value: _energyConfirmed,
             activeTrackColor: AppColors.primaryGreen,
             onChanged: (v) => setState(() => _energyConfirmed = v),
           ),
           const SizedBox(height: 16),
-          const Text('Any special deviations today?'),
+          const Text(
+            'Any special deviations today?',
+            style: TextStyle(color: Colors.white),
+          ),
           const SizedBox(height: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -509,7 +702,10 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: CheckboxListTile(
-                  title: Text(opt.replaceAll('_', ' ')),
+                  title: Text(
+                    opt.replaceAll('_', ' '),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                   value: isSelected,
                   activeColor: AppColors.primaryBlue,
                   onChanged: (selected) {

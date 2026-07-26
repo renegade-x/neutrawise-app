@@ -25,14 +25,103 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     super.dispose();
   }
 
-  void _signUp() {
-    ref
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: AppColors.textSecondaryDark,
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _signUp() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (name.isEmpty && email.isEmpty && password.isEmpty) {
+      _showErrorDialog(
+        'Empty Fields',
+        'Please fill in all fields (Full Name, Email, and Password).',
+      );
+      return;
+    }
+
+    if (name.isEmpty) {
+      _showErrorDialog('Empty Field', 'Please enter your full name.');
+      return;
+    }
+
+    if (email.isEmpty) {
+      _showErrorDialog('Empty Field', 'Please enter your email address.');
+      return;
+    }
+
+    if (password.isEmpty) {
+      _showErrorDialog('Empty Field', 'Please enter a password.');
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      _showErrorDialog(
+        'Invalid Input Format',
+        'Please enter a valid email address (e.g. user@example.com).',
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      _showErrorDialog(
+        'Invalid Input Format',
+        'Password must be at least 6 characters long.',
+      );
+      return;
+    }
+
+    final errorMsg = await ref
         .read(authProvider.notifier)
-        .signUp(
-          _emailController.text.trim(),
-          _passwordController.text,
-          name: _nameController.text.trim(),
-        );
+        .signUp(email, password, name: name);
+
+    if (errorMsg != null && mounted) {
+      _showErrorDialog('Sign Up Failed', errorMsg);
+    }
   }
 
   @override
@@ -61,22 +150,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              if (authState.error != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    authState.error!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
               TextField(
                 controller: _nameController,
                 style: const TextStyle(color: Colors.white),

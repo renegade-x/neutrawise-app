@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/services/push_notification_service.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
 import 'package:neutrawise/routing/router.dart';
+import 'package:neutrawise/widgets/charts/emissions_chart.dart';
 
 class ActiveTabNotifier extends Notifier<int> {
   @override
@@ -423,6 +424,12 @@ class _DashboardContent extends ConsumerWidget {
                       const SizedBox(height: 32),
                       const DailyEcoTipWidget(),
                       const SizedBox(height: 24),
+                      EmissionsBreakdownChart(
+                        logs: logs.take(7).toList(),
+                        baseline: profile.totalDailyBaselineCo2 ?? 15.0,
+                        title: 'Weekly Emissions Breakdown',
+                      ),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),

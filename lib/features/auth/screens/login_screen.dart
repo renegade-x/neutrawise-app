@@ -23,10 +23,88 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    ref
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: AppColors.textSecondaryDark,
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty && password.isEmpty) {
+      _showErrorDialog(
+        'Empty Fields',
+        'Please enter both your email address and password.',
+      );
+      return;
+    }
+
+    if (email.isEmpty) {
+      _showErrorDialog('Empty Field', 'Please enter your email address.');
+      return;
+    }
+
+    if (password.isEmpty) {
+      _showErrorDialog('Empty Field', 'Please enter your password.');
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      _showErrorDialog(
+        'Invalid Input Format',
+        'Please enter a valid email address (e.g. user@example.com).',
+      );
+      return;
+    }
+
+    final errorMsg = await ref
         .read(authProvider.notifier)
-        .signIn(_emailController.text.trim(), _passwordController.text);
+        .signIn(email, password);
+    if (errorMsg != null && mounted) {
+      _showErrorDialog('Login Failed', errorMsg);
+    }
   }
 
   @override
@@ -55,22 +133,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              if (authState.error != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    authState.error!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
               TextField(
                 controller: _emailController,
                 style: const TextStyle(color: Colors.white),

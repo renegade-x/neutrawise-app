@@ -451,6 +451,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         'leaderboard_overtake',
                       ),
                       _buildNotifSwitch('Quiz Notifications', 'quiz_available'),
+                      _buildNotifSwitch('Weekly Summary', 'weekly_summary'),
                     ],
 
                     const Divider(color: Colors.white10),

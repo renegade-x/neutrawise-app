@@ -3,6 +3,8 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/config/environment.dart';
 import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
+import 'package:neutrawise/widgets/celebration_modal.dart';
+import 'package:neutrawise/routing/router.dart';
 
 class PushNotificationService {
   static void initialize(WidgetRef ref) {
@@ -52,18 +54,77 @@ class PushNotificationService {
     final type = data['type'] as String?;
     debugPrint("Notification tapped with type: $type, data: $data");
 
+    final context = rootNavigatorKey.currentContext;
+
     switch (type) {
       case 'daily_log_reminder':
-      case 'streak_milestone':
-        ref.read(activeTabProvider.notifier).setTab(0); // Home
+      case 'final_log_warning':
+      case 'streak_expiration':
+        ref.read(activeTabProvider.notifier).setTab(0); // Home / Dashboard
         break;
-      case 'challenge_complete':
-      case 'level_up':
-      case 'badge_earned':
+
+      case 'weekly_summary':
+        ref.read(activeTabProvider.notifier).setTab(1); // Insights Screen
+        break;
+
+      case 'challenge_reminder':
+      case 'leaderboard_overtaken':
         ref
             .read(activeTabProvider.notifier)
-            .setTab(2); // Eco Club (Gamification)
+            .setTab(2); // Gamification (Eco Club)
         break;
+
+      case 'quiz_available':
+        ref.read(activeTabProvider.notifier).setTab(3); // AI Assistant / Quiz
+        break;
+
+      case 'streak_milestone':
+        ref.read(activeTabProvider.notifier).setTab(0); // Home
+        if (context != null) {
+          final streakDays = data['streak_days'] ?? 7;
+          CelebrationModal.showChallengeComplete(
+            context,
+            "🔥 $streakDays-Day Streak Milestone!",
+            50,
+          );
+        }
+        break;
+
+      case 'challenge_complete':
+        ref.read(activeTabProvider.notifier).setTab(2); // Gamification
+        if (context != null) {
+          final challengeName =
+              data['challenge_name'] as String? ?? 'Eco Challenge';
+          final xp = data['xp'] is int
+              ? data['xp'] as int
+              : int.tryParse('${data['xp']}') ?? 100;
+          CelebrationModal.showChallengeComplete(context, challengeName, xp);
+        }
+        break;
+
+      case 'level_up':
+        ref.read(activeTabProvider.notifier).setTab(2); // Gamification
+        if (context != null) {
+          final newLevel = data['new_level'] is int
+              ? data['new_level'] as int
+              : int.tryParse('${data['new_level']}') ?? 2;
+          final levelTitle = data['level_title'] as String? ?? 'Eco Sprout';
+          CelebrationModal.showLevelUp(context, newLevel, levelTitle);
+        }
+        break;
+
+      case 'badge_earned':
+        ref.read(activeTabProvider.notifier).setTab(2); // Gamification / Badges
+        if (context != null) {
+          final badgeName = data['badge_name'] as String? ?? 'Special Badge';
+          CelebrationModal.showBadgeEarned(
+            context,
+            badgeName,
+            "Awarded for completing carbon reduction achievements!",
+          );
+        }
+        break;
+
       default:
         ref.read(activeTabProvider.notifier).setTab(0); // Default Home
     }

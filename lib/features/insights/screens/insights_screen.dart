@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
-import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
+import 'package:neutrawise/widgets/charts/emissions_chart.dart';
 
 class InsightsScreen extends ConsumerStatefulWidget {
   const InsightsScreen({super.key});
@@ -15,8 +15,6 @@ class InsightsScreen extends ConsumerStatefulWidget {
 }
 
 class _InsightsScreenState extends ConsumerState<InsightsScreen> {
-  String _timeRange = 'Week'; // 'Week' or 'Month'
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -44,11 +42,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, st) => Center(child: Text('Error: $e')),
                 data: (logs) {
-                  // Calculate insights based on range
+                  // Calculate monthly insights (up to 30 days)
                   final double baseline = profile.totalDailyBaselineCo2 ?? 15.0;
-                  final recentLogs = logs
-                      .take(_timeRange == 'Week' ? 7 : 30)
-                      .toList();
+                  final recentLogs = logs.take(30).toList();
 
                   double totalSaved = 0.0;
                   double totalEmitted = 0.0;
@@ -99,46 +95,37 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                                     color: Colors.white,
                                   ),
                             ),
-                            // Toggle
                             Container(
-                              padding: const EdgeInsets.all(4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.surfaceDark,
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.primaryGreen.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
                               ),
-                              child: Row(
-                                children: ['Week', 'Month'].map((range) {
-                                  final isSelected = _timeRange == range;
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _timeRange = range;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? AppColors.primaryGreen
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        range,
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? Colors.white
-                                              : AppColors.textSecondaryDark,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_month,
+                                    color: AppColors.primaryGreen,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Monthly View',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
                                     ),
-                                  );
-                                }).toList(),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -215,51 +202,11 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Stacked Trend Chart
-                        const Text(
-                          'Emissions Breakdown',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          height: 220,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceDark,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.05),
-                            ),
-                          ),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final double totalChartWidth = max(
-                                constraints.maxWidth,
-                                recentLogs.length * 60.0,
-                              );
-                              return SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: SizedBox(
-                                    width:
-                                        totalChartWidth -
-                                        32, // account for padding
-                                    child: CustomPaint(
-                                      size: Size.infinite,
-                                      painter: StackedBarChartPainter(
-                                        logs: recentLogs,
-                                        baseline: baseline,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                        // Monthly Stacked Trend Chart
+                        EmissionsBreakdownChart(
+                          logs: recentLogs,
+                          baseline: baseline,
+                          title: 'Monthly Emissions Breakdown',
                         ),
                         const SizedBox(height: 24),
 
@@ -550,116 +497,6 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
       ],
     );
   }
-}
-
-class StackedBarChartPainter extends CustomPainter {
-  final List<DailyLog> logs;
-  final double baseline;
-
-  StackedBarChartPainter({required this.logs, required this.baseline});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double width = size.width;
-    final double height = size.height;
-    final double chartHeight = height - 20;
-
-    // Draw baseline
-    final baselinePaint = Paint()
-      ..color = Colors.white24
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    // Find the maximum total emission value in logs to scale dynamically
-    double maxLogVal = 0.0;
-    for (var log in logs) {
-      final totalCo2 = log.transportCo2 + log.foodCo2 + log.energyCo2;
-      if (totalCo2 > maxLogVal) {
-        maxLogVal = totalCo2;
-      }
-    }
-    final double maxVal = max(max(baseline * 1.5, maxLogVal * 1.1), 30.0);
-    final double baselineY = chartHeight - (baseline / maxVal) * chartHeight;
-
-    // Draw horizontal guidelines
-    canvas.drawLine(
-      Offset(0, baselineY),
-      Offset(width, baselineY),
-      baselinePaint,
-    );
-
-    // Text for baseline
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'Baseline (${baseline.toStringAsFixed(1)})',
-        style: const TextStyle(color: Colors.white30, fontSize: 10),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(canvas, Offset(8, baselineY - 14));
-
-    if (logs.isEmpty) return;
-
-    final double barSpacing = width / (logs.length * 2);
-    final double barWidth = width / (logs.length * 1.8);
-
-    for (int i = 0; i < logs.length; i++) {
-      final log = logs[logs.length - 1 - i];
-      final double x = barSpacing + i * (barWidth + barSpacing);
-
-      // Stack: Transport (bottom), Food (middle), Energy (top)
-      final double transportH = (log.transportCo2 / maxVal) * chartHeight;
-      final double foodH = (log.foodCo2 / maxVal) * chartHeight;
-      final double energyH = (log.energyCo2 / maxVal) * chartHeight;
-
-      double currentY = chartHeight;
-
-      // Draw Transport segment
-      if (transportH > 0) {
-        final rect = Rect.fromLTWH(
-          x,
-          currentY - transportH,
-          barWidth,
-          transportH,
-        );
-        canvas.drawRect(rect, Paint()..color = AppColors.primaryBlue);
-        currentY -= transportH;
-      }
-
-      // Draw Food segment
-      if (foodH > 0) {
-        final rect = Rect.fromLTWH(x, currentY - foodH, barWidth, foodH);
-        canvas.drawRect(rect, Paint()..color = AppColors.primaryGreen);
-        currentY -= foodH;
-      }
-
-      // Draw Energy segment
-      if (energyH > 0) {
-        final rect = Rect.fromLTWH(x, currentY - energyH, barWidth, energyH);
-        canvas.drawRect(rect, Paint()..color = AppColors.warning);
-      }
-
-      // Labels below the bars
-      final dateStr = log.date.substring(5); // e.g. 05-24
-      final datePainter = TextPainter(
-        text: TextSpan(
-          text: dateStr,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 8,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      datePainter.paint(
-        canvas,
-        Offset(x + (barWidth - datePainter.width) / 2, height - 12),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 class TargetProgressPainter extends CustomPainter {
