@@ -28,6 +28,48 @@ class GamificationEngine {
     'Carbon Neutral',
   ];
 
+  /// Get cooldown period in days based on challenge difficulty and duration
+  static int getChallengeCooldownDays(String difficulty, {int? durationDays}) {
+    final diff = difficulty.trim().toLowerCase();
+    if (diff == 'medium') {
+      return 7;
+    } else if (diff == 'hard') {
+      final duration = durationDays ?? 30;
+      return max(30, duration);
+    }
+    // Easy resets immediately
+    return 0;
+  }
+
+  /// Check if a completed challenge is currently on cooldown
+  static bool isChallengeOnCooldown({
+    required String difficulty,
+    required DateTime? completedAt,
+    required DateTime now,
+    int? durationDays,
+  }) {
+    if (completedAt == null) return false;
+    final cooldownDays = getChallengeCooldownDays(difficulty, durationDays: durationDays);
+    if (cooldownDays <= 0) return false;
+    final elapsedDays = now.difference(completedAt).inDays;
+    return elapsedDays < cooldownDays;
+  }
+
+  /// Get remaining cooldown days for a completed challenge
+  static int getRemainingCooldownDays({
+    required String difficulty,
+    required DateTime? completedAt,
+    required DateTime now,
+    int? durationDays,
+  }) {
+    if (completedAt == null) return 0;
+    final cooldownDays = getChallengeCooldownDays(difficulty, durationDays: durationDays);
+    if (cooldownDays <= 0) return 0;
+    final elapsedDays = now.difference(completedAt).inDays;
+    final remaining = cooldownDays - elapsedDays;
+    return max(0, remaining);
+  }
+
   /// Calculate XP earned for a daily log
   static int calculateXp({
     required bool isFullLog,

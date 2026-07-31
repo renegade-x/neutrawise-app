@@ -191,5 +191,88 @@ void main() {
         expect(streak, 3);
       });
     });
+
+    group('Challenge Cooldown Logic', () {
+      final now = DateTime(2026, 7, 29, 12, 0);
+
+      test('Easy challenges reset immediately (0 days cooldown)', () {
+        final completedAt = now.subtract(const Duration(hours: 1));
+        final cooldownDays = GamificationEngine.getChallengeCooldownDays('Easy');
+        expect(cooldownDays, 0);
+
+        final isOnCooldown = GamificationEngine.isChallengeOnCooldown(
+          difficulty: 'Easy',
+          completedAt: completedAt,
+          now: now,
+        );
+        expect(isOnCooldown, false);
+      });
+
+      test('Medium challenges have a 7-day cooldown', () {
+        final completedAt3DaysAgo = now.subtract(const Duration(days: 3));
+        final completedAt8DaysAgo = now.subtract(const Duration(days: 8));
+
+        expect(GamificationEngine.getChallengeCooldownDays('Medium'), 7);
+
+        expect(
+          GamificationEngine.isChallengeOnCooldown(
+            difficulty: 'Medium',
+            completedAt: completedAt3DaysAgo,
+            now: now,
+          ),
+          true,
+        );
+        expect(
+          GamificationEngine.getRemainingCooldownDays(
+            difficulty: 'Medium',
+            completedAt: completedAt3DaysAgo,
+            now: now,
+          ),
+          4,
+        );
+
+        expect(
+          GamificationEngine.isChallengeOnCooldown(
+            difficulty: 'Medium',
+            completedAt: completedAt8DaysAgo,
+            now: now,
+          ),
+          false,
+        );
+      });
+
+      test('Hard challenges have a 30-day cooldown', () {
+        final completedAt10DaysAgo = now.subtract(const Duration(days: 10));
+        final completedAt35DaysAgo = now.subtract(const Duration(days: 35));
+
+        expect(GamificationEngine.getChallengeCooldownDays('Hard'), 30);
+
+        expect(
+          GamificationEngine.isChallengeOnCooldown(
+            difficulty: 'Hard',
+            completedAt: completedAt10DaysAgo,
+            now: now,
+          ),
+          true,
+        );
+        expect(
+          GamificationEngine.getRemainingCooldownDays(
+            difficulty: 'Hard',
+            completedAt: completedAt10DaysAgo,
+            now: now,
+          ),
+          20,
+        );
+
+        expect(
+          GamificationEngine.isChallengeOnCooldown(
+            difficulty: 'Hard',
+            completedAt: completedAt35DaysAgo,
+            now: now,
+          ),
+          false,
+        );
+      });
+    });
   });
 }

@@ -25,6 +25,16 @@ final activeChallengesProvider =
       return repo.getActiveChallenges(userId);
     });
 
+// Fetch all user challenge records (both active and completed)
+final userChallengesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>((
+      ref,
+      userId,
+    ) async {
+      final repo = ref.watch(gamificationRepositoryProvider);
+      return repo.getAllUserChallenges(userId);
+    });
+
 class GamificationRepository {
   final SupabaseClient _client;
 
@@ -55,6 +65,18 @@ class GamificationRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getAllUserChallenges(String userId) async {
+    try {
+      final List<dynamic> response = await _client
+          .from('user_challenges')
+          .select()
+          .eq('user_id', userId);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<void> enrollInChallenge(
     String userId,
     Map<String, dynamic> challenge,
@@ -68,6 +90,7 @@ class GamificationRepository {
       'duration_days': challenge['duration'],
       'xp_reward': challenge['xp'],
       'progress_percent': 0,
+      'started_at': DateTime.now().toIso8601String(),
       'completed_at': null,
     });
   }

@@ -48,6 +48,14 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
       'xp': 100,
     },
     {
+      'id': 'secondhand_shopping',
+      'name': 'Secondhand Shopping Week',
+      'category': 'Lifestyle',
+      'difficulty': 'Easy',
+      'duration': 7,
+      'xp': 100,
+    },
+    {
       'id': 'plant_a_tree',
       'name': 'Plant a Tree',
       'category': 'Nature',
@@ -56,12 +64,28 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
       'xp': 200,
     },
     {
-      'id': 'secondhand_shopping',
-      'name': 'Secondhand Shopping Week',
-      'category': 'Lifestyle',
-      'difficulty': 'Easy',
+      'id': 'public_transit_master',
+      'name': 'Public Transit Master',
+      'category': 'Transport',
+      'difficulty': 'Medium',
       'duration': 7,
-      'xp': 100,
+      'xp': 250,
+    },
+    {
+      'id': 'zero_waste_month',
+      'name': 'Zero Waste Month',
+      'category': 'Lifestyle',
+      'difficulty': 'Hard',
+      'duration': 30,
+      'xp': 500,
+    },
+    {
+      'id': 'vegan_month',
+      'name': '30-Day Vegan Challenge',
+      'category': 'Food',
+      'difficulty': 'Hard',
+      'duration': 30,
+      'xp': 500,
     },
   ];
 
@@ -88,6 +112,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
     final profileAsync = ref.watch(userProfileProvider(user.id));
     final badgesAsync = ref.watch(userBadgesProvider(user.id));
     final challengesAsync = ref.watch(activeChallengesProvider(user.id));
+    final userChallengesAsync = ref.watch(userChallengesProvider(user.id));
     final leaderboardAsync = ref.watch(leaderboardProvider(_leaderboardType));
 
     return Scaffold(
@@ -240,7 +265,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                               const Center(child: CircularProgressIndicator()),
                           error: (e, st) => Center(child: Text('Error: $e')),
                           data: (challenges) =>
-                              _buildChallengesTab(profile.id, challenges),
+                              _buildChallengesTab(profile.id, challenges, userChallengesAsync.value ?? []),
                         ),
 
                         // TAB 2: Badges
@@ -284,6 +309,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
   Widget _buildChallengesTab(
     String userId,
     List<Map<String, dynamic>> challenges,
+    List<Map<String, dynamic>> allUserChallenges,
   ) {
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -302,7 +328,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
             TextButton.icon(
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Browse'),
-              onPressed: () => _showBrowseChallengesDialog(userId, challenges),
+              onPressed: () => _showBrowseChallengesDialog(userId, allUserChallenges),
             ),
           ],
         ),
@@ -499,6 +525,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                                     );
                               }
                               ref.invalidate(activeChallengesProvider(userId));
+                              ref.invalidate(userChallengesProvider(userId));
                             },
                             child: const Text('Log Progress'),
                           ),
@@ -889,9 +916,15 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
 
   void _showBrowseChallengesDialog(
     String userId,
-    List<Map<String, dynamic>> active,
+    List<Map<String, dynamic>> userChallenges,
   ) {
-    final activeIds = active.map((c) => c['challenge_id'] as String).toSet();
+    final challengeRecords = <String, Map<String, dynamic>>{};
+    for (final row in userChallenges) {
+      final cId = row['challenge_id'] as String?;
+      if (cId != null) {
+        challengeRecords[cId] = row;
+      }
+    }
 
     showDialog(
       context: context,
@@ -904,12 +937,93 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
           ),
           content: SizedBox(
             width: double.maxFinite,
-            height: 350,
+            height: 380,
             child: ListView.builder(
               itemCount: _challengeLibrary.length,
               itemBuilder: (context, index) {
                 final c = _challengeLibrary[index];
-                final isEnrolled = activeIds.contains(c['id']);
+                final id = c['id'] as String;
+                final record = challengeRecords[id];
+
+                final isEnrolled = record != null && record['completed_at'] == null;
+
+                bool isOnCooldown = false;
+                int remainingDays = 0;
+
+                if (record != null && record['completed_at'] != null) {
+                  final completedAtStr = record['completed_at'] as String?;
+                  if (completedAtStr != null) {
+                    final completedAt = DateTime.tryParse(completedAtStr);
+                    final difficulty = (c['difficulty'] ?? 'Easy').toString();
+                    final duration = c['duration'] as int?;
+
+                    isOnCooldown = GamificationEngine.isChallengeOnCooldown(
+                      difficulty: difficulty,
+                      completedAt: completedAt,
+                      now: DateTime.now(),
+                      durationDays: duration,
+                    );
+                    if (isOnCooldown) {
+                      remainingDays = GamificationEngine.getRemainingCooldownDays(
+                        difficulty: difficulty,
+                        completedAt: completedAt,
+                        now: DateTime.now(),
+                        durationDays: duration,
+                      );
+                      if (remainingDays < 1) remainingDays = 1;
+                    }
+                  }
+                }
+
+                Widget trailingWidget;
+                if (isEnrolled) {
+                  trailingWidget = Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Active',
+                      style: TextStyle(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                } else if (isOnCooldown) {
+                  trailingWidget = Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Cooldown (${remainingDays}d)',
+                      style: const TextStyle(
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  );
+                } else {
+                  trailingWidget = ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      await ref
+                          .read(gamificationRepositoryProvider)
+                          .enrollInChallenge(userId, c);
+                      ref.invalidate(activeChallengesProvider(userId));
+                      ref.invalidate(userChallengesProvider(userId));
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                    child: const Text('Start'),
+                  );
+                }
 
                 return ListTile(
                   leading: Icon(
@@ -921,27 +1035,10 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                     style: const TextStyle(color: Colors.white),
                   ),
                   subtitle: Text(
-                    '+${c['xp']} XP · ${c['difficulty']}',
+                    '+${c['xp']} XP · ${c['difficulty']} (${c['duration']}d)',
                     style: const TextStyle(color: AppColors.textSecondaryDark),
                   ),
-                  trailing: isEnrolled
-                      ? const Text(
-                          'Active',
-                          style: TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : ElevatedButton(
-                          onPressed: () async {
-                            await ref
-                                .read(gamificationRepositoryProvider)
-                                .enrollInChallenge(userId, c);
-                            ref.invalidate(activeChallengesProvider(userId));
-                            if (context.mounted) Navigator.pop(context);
-                          },
-                          child: const Text('Start'),
-                        ),
+                  trailing: trailingWidget,
                 );
               },
             ),
