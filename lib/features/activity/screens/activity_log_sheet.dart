@@ -87,7 +87,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
 
   // --- Helper Calculations for Preview ---
 
-  double _getTransportLegCo2(String mode, double distanceKm, UserProfile? profile) {
+  double _getTransportLegCo2(
+    String mode,
+    double distanceKm,
+    UserProfile? profile,
+  ) {
     double factor = 0.0;
     if (mode == 'car' || mode == 'ev' || mode == 'motorcycle') {
       factor = profile?.transportFactor ?? 0.23;
@@ -97,11 +101,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
     return factor * distanceKm;
   }
 
-  double _getFoodItemCo2(
-    String category,
-    double grams,
-    double? co2Per100g,
-  ) {
+  double _getFoodItemCo2(String category, double grams, double? co2Per100g) {
     if (co2Per100g != null && co2Per100g > 0) {
       return (co2Per100g / 1000.0) * (grams / 100.0);
     } else {
@@ -392,16 +392,24 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
-    final profileAsync = user != null ? ref.watch(userProfileProvider(user.id)) : null;
+    final profileAsync = user != null
+        ? ref.watch(userProfileProvider(user.id))
+        : null;
     final profile = profileAsync?.value;
 
     final travelCo2Sum = _transportEntries.fold<double>(
       0.0,
-      (sum, item) => sum + (item.calculatedCo2 ?? _getTransportLegCo2(item.mode, item.distanceKm, profile)),
+      (sum, item) =>
+          sum +
+          (item.calculatedCo2 ??
+              _getTransportLegCo2(item.mode, item.distanceKm, profile)),
     );
     final foodCo2Sum = _foodEntries.fold<double>(
       0.0,
-      (sum, item) => sum + (item.calculatedCo2 ?? _getFoodItemCo2(item.category, item.grams, item.co2Per100g)),
+      (sum, item) =>
+          sum +
+          (item.calculatedCo2 ??
+              _getFoodItemCo2(item.category, item.grams, item.co2Per100g)),
     );
     final energyCo2Sum = _getEnergyCo2(profile);
     final totalLogCo2 = travelCo2Sum + foodCo2Sum + energyCo2Sum;
@@ -540,21 +548,24 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               labelText: 'Transport Mode',
               border: OutlineInputBorder(),
             ),
-            items: [
-              'car',
-              'ev',
-              'motorcycle',
-              'bus',
-              'train',
-              'metro',
-              'bicycle',
-              'walking',
-            ].map(
-              (e) => DropdownMenuItem(
-                value: e,
-                child: Text(e.toUpperCase()),
-              ),
-            ).toList(),
+            items:
+                [
+                      'car',
+                      'ev',
+                      'motorcycle',
+                      'bus',
+                      'train',
+                      'metro',
+                      'bicycle',
+                      'walking',
+                    ]
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(e.toUpperCase()),
+                      ),
+                    )
+                    .toList(),
             onChanged: (v) => setState(() => _transportMode = v!),
           ),
           const SizedBox(height: 16),
@@ -576,11 +587,17 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               decoration: BoxDecoration(
                 color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+                border: Border.all(
+                  color: AppColors.primaryGreen.withOpacity(0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.co2, color: AppColors.primaryGreen, size: 20),
+                  const Icon(
+                    Icons.co2,
+                    color: AppColors.primaryGreen,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Trip CO₂ Preview: ${liveTripCo2.toStringAsFixed(2)} kg CO₂e',
@@ -623,54 +640,57 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               ),
             )
           else
-            ..._transportEntries.asMap().entries.map(
-              (entry) {
-                final legCo2 = entry.value.calculatedCo2 ??
-                    _getTransportLegCo2(entry.value.mode, entry.value.distanceKm, profile);
-                return Card(
-                  color: AppColors.surfaceDark,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    title: Text(
-                      entry.value.mode.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${entry.value.distanceKm} km',
-                      style: const TextStyle(color: AppColors.textSecondaryDark),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${legCo2.toStringAsFixed(2)} kg',
-                          style: const TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _transportEntries.removeAt(entry.key);
-                            });
-                            _showSnackbar('Trip removed', isError: false);
-                          },
-                        ),
-                      ],
+            ..._transportEntries.asMap().entries.map((entry) {
+              final legCo2 =
+                  entry.value.calculatedCo2 ??
+                  _getTransportLegCo2(
+                    entry.value.mode,
+                    entry.value.distanceKm,
+                    profile,
+                  );
+              return Card(
+                color: AppColors.surfaceDark,
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  title: Text(
+                    entry.value.mode.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              },
-            ),
+                  subtitle: Text(
+                    '${entry.value.distanceKm} km',
+                    style: const TextStyle(color: AppColors.textSecondaryDark),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${legCo2.toStringAsFixed(2)} kg',
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _transportEntries.removeAt(entry.key);
+                          });
+                          _showSnackbar('Trip removed', isError: false);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -681,7 +701,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
   Widget _buildFoodTab() {
     final gramsVal = double.tryParse(_foodGramsCtrl.text.trim()) ?? 0.0;
     final liveMealCo2 = gramsVal > 0
-        ? _getFoodItemCo2(_foodCategory, gramsVal, _selectedFoodProduct?.co2Total)
+        ? _getFoodItemCo2(
+            _foodCategory,
+            gramsVal,
+            _selectedFoodProduct?.co2Total,
+          )
         : 0.0;
 
     return SingleChildScrollView(
@@ -697,9 +721,12 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               labelText: 'Meal Slot',
               border: OutlineInputBorder(),
             ),
-            items: ['Breakfast', 'Lunch', 'Dinner', 'Snack']
-                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                .toList(),
+            items: [
+              'Breakfast',
+              'Lunch',
+              'Dinner',
+              'Snack',
+            ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
             onChanged: (v) => setState(() => _mealSlot = v!),
           ),
           const SizedBox(height: 16),
@@ -711,7 +738,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               final service = ref.read(openFoodFactsProvider);
               return await service.searchFood(textEditingValue.text);
             },
-            displayStringForOption: (OpenFoodFactsProduct option) => option.name,
+            displayStringForOption: (OpenFoodFactsProduct option) =>
+                option.name,
             onSelected: (OpenFoodFactsProduct selection) {
               _foodNameCtrl.text = selection.name;
               _selectedFoodProduct = selection;
@@ -719,25 +747,29 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 setState(() => _foodCategory = selection.fallbackCategory!);
               }
             },
-            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-              return TextFormField(
-                controller: controller,
-                focusNode: focusNode,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Food Search (Open Food Facts)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.search, color: AppColors.textSecondaryDark),
-                ),
-                onChanged: (val) {
-                  if (_foodNameCtrl.text != val) {
-                    _selectedFoodProduct = null;
-                  }
-                  _foodNameCtrl.text = val;
-                  setState(() {});
+            fieldViewBuilder:
+                (context, controller, focusNode, onFieldSubmitted) {
+                  return TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Food Search (Open Food Facts)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: AppColors.textSecondaryDark,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      if (_foodNameCtrl.text != val) {
+                        _selectedFoodProduct = null;
+                      }
+                      _foodNameCtrl.text = val;
+                      setState(() {});
+                    },
+                  );
                 },
-              );
-            },
             optionsViewBuilder: (context, onSelected, options) {
               return Align(
                 alignment: Alignment.topLeft,
@@ -785,9 +817,18 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'small', child: Text('Small (~150g)')),
-                    DropdownMenuItem(value: 'medium', child: Text('Medium (~250g)')),
-                    DropdownMenuItem(value: 'large', child: Text('Large (~400g)')),
+                    DropdownMenuItem(
+                      value: 'small',
+                      child: Text('Small (~150g)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'medium',
+                      child: Text('Medium (~250g)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'large',
+                      child: Text('Large (~400g)'),
+                    ),
                   ],
                   onChanged: (v) => _onServingSizeChanged(v!),
                 ),
@@ -796,7 +837,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               Expanded(
                 child: TextFormField(
                   controller: _foodGramsCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     labelText: 'Amount (grams)',
@@ -834,11 +877,17 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               decoration: BoxDecoration(
                 color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+                border: Border.all(
+                  color: AppColors.primaryGreen.withOpacity(0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.co2, color: AppColors.primaryGreen, size: 20),
+                  const Icon(
+                    Icons.co2,
+                    color: AppColors.primaryGreen,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Meal CO₂ Preview: ${liveMealCo2.toStringAsFixed(2)} kg CO₂e',
@@ -881,54 +930,57 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               ),
             )
           else
-            ..._foodEntries.asMap().entries.map(
-              (entry) {
-                final mealCo2 = entry.value.calculatedCo2 ??
-                    _getFoodItemCo2(entry.value.category, entry.value.grams, entry.value.co2Per100g);
-                return Card(
-                  color: AppColors.surfaceDark,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    title: Text(
-                      '${entry.value.mealSlot}: ${entry.value.foodName}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${entry.value.category.replaceAll('_', ' ')} (${entry.value.grams}g)',
-                      style: const TextStyle(color: AppColors.textSecondaryDark),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${mealCo2.toStringAsFixed(2)} kg',
-                          style: const TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _foodEntries.removeAt(entry.key);
-                            });
-                            _showSnackbar('Meal removed', isError: false);
-                          },
-                        ),
-                      ],
+            ..._foodEntries.asMap().entries.map((entry) {
+              final mealCo2 =
+                  entry.value.calculatedCo2 ??
+                  _getFoodItemCo2(
+                    entry.value.category,
+                    entry.value.grams,
+                    entry.value.co2Per100g,
+                  );
+              return Card(
+                color: AppColors.surfaceDark,
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  title: Text(
+                    '${entry.value.mealSlot}: ${entry.value.foodName}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              },
-            ),
+                  subtitle: Text(
+                    '${entry.value.category.replaceAll('_', ' ')} (${entry.value.grams}g)',
+                    style: const TextStyle(color: AppColors.textSecondaryDark),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${mealCo2.toStringAsFixed(2)} kg',
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _foodEntries.removeAt(entry.key);
+                          });
+                          _showSnackbar('Meal removed', isError: false);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -961,11 +1013,17 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           SwitchListTile(
             title: const Text(
               'Confirm Energy Usage for Today',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             subtitle: const Text(
               'Required to include daily energy baseline & deviations in log',
-              style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 12,
+              ),
             ),
             value: _energyConfirmed,
             activeTrackColor: AppColors.primaryGreen,
@@ -1031,7 +1089,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             decoration: BoxDecoration(
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+              border: Border.all(
+                color: AppColors.primaryGreen.withOpacity(0.3),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1061,7 +1121,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     Text(
                       _energyConfirmed ? 'CONFIRMED' : 'UNCONFIRMED',
                       style: TextStyle(
-                        color: _energyConfirmed ? AppColors.primaryGreen : Colors.amber,
+                        color: _energyConfirmed
+                            ? AppColors.primaryGreen
+                            : Colors.amber,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

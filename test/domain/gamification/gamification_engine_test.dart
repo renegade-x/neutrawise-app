@@ -197,7 +197,9 @@ void main() {
 
       test('Easy challenges reset immediately (0 days cooldown)', () {
         final completedAt = now.subtract(const Duration(hours: 1));
-        final cooldownDays = GamificationEngine.getChallengeCooldownDays('Easy');
+        final cooldownDays = GamificationEngine.getChallengeCooldownDays(
+          'Easy',
+        );
         expect(cooldownDays, 0);
 
         final isOnCooldown = GamificationEngine.isChallengeOnCooldown(

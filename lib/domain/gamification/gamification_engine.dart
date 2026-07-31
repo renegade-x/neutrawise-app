@@ -49,7 +49,10 @@ class GamificationEngine {
     int? durationDays,
   }) {
     if (completedAt == null) return false;
-    final cooldownDays = getChallengeCooldownDays(difficulty, durationDays: durationDays);
+    final cooldownDays = getChallengeCooldownDays(
+      difficulty,
+      durationDays: durationDays,
+    );
     if (cooldownDays <= 0) return false;
     final elapsedDays = now.difference(completedAt).inDays;
     return elapsedDays < cooldownDays;
@@ -63,7 +66,10 @@ class GamificationEngine {
     int? durationDays,
   }) {
     if (completedAt == null) return 0;
-    final cooldownDays = getChallengeCooldownDays(difficulty, durationDays: durationDays);
+    final cooldownDays = getChallengeCooldownDays(
+      difficulty,
+      durationDays: durationDays,
+    );
     if (cooldownDays <= 0) return 0;
     final elapsedDays = now.difference(completedAt).inDays;
     final remaining = cooldownDays - elapsedDays;

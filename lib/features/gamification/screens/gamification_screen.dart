@@ -264,8 +264,11 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                           loading: () =>
                               const Center(child: CircularProgressIndicator()),
                           error: (e, st) => Center(child: Text('Error: $e')),
-                          data: (challenges) =>
-                              _buildChallengesTab(profile.id, challenges, userChallengesAsync.value ?? []),
+                          data: (challenges) => _buildChallengesTab(
+                            profile.id,
+                            challenges,
+                            userChallengesAsync.value ?? [],
+                          ),
                         ),
 
                         // TAB 2: Badges
@@ -328,7 +331,8 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
             TextButton.icon(
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Browse'),
-              onPressed: () => _showBrowseChallengesDialog(userId, allUserChallenges),
+              onPressed: () =>
+                  _showBrowseChallengesDialog(userId, allUserChallenges),
             ),
           ],
         ),
@@ -945,7 +949,8 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                 final id = c['id'] as String;
                 final record = challengeRecords[id];
 
-                final isEnrolled = record != null && record['completed_at'] == null;
+                final isEnrolled =
+                    record != null && record['completed_at'] == null;
 
                 bool isOnCooldown = false;
                 int remainingDays = 0;
@@ -964,12 +969,13 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                       durationDays: duration,
                     );
                     if (isOnCooldown) {
-                      remainingDays = GamificationEngine.getRemainingCooldownDays(
-                        difficulty: difficulty,
-                        completedAt: completedAt,
-                        now: DateTime.now(),
-                        durationDays: duration,
-                      );
+                      remainingDays =
+                          GamificationEngine.getRemainingCooldownDays(
+                            difficulty: difficulty,
+                            completedAt: completedAt,
+                            now: DateTime.now(),
+                            durationDays: duration,
+                          );
                       if (remainingDays < 1) remainingDays = 1;
                     }
                   }
@@ -978,7 +984,10 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                 Widget trailingWidget;
                 if (isEnrolled) {
                   trailingWidget = Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryGreen.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
@@ -993,7 +1002,10 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                   );
                 } else if (isOnCooldown) {
                   trailingWidget = Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.amber.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
