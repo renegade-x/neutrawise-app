@@ -5,7 +5,7 @@ import 'package:neutrawise/domain/co2_engine/co2_calculator.dart';
 
 void main() {
   group('ActivityLogSheet Engine Integration Tests', () {
-    final mockProfile = UserProfile(
+    final mockProfile = const UserProfile(
       id: 'test-user-123',
       name: 'Eco User',
       transportFactor: 0.23,

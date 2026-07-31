@@ -84,7 +84,7 @@ DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'cron') THEN
     -- 1. Daily Log Reminder (8:00 PM Daily)
-    PERFORM cron.schedule('daily_log_reminder_job', '0 20 * * *', $$
+    PERFORM cron.schedule('daily_log_reminder_job', '0 20 * * *', $cron$
       SELECT net.http_post(
         url := 'https://your-project.supabase.co/functions/v1/schedule_push_notification',
         payload := json_build_object(
@@ -98,10 +98,10 @@ BEGIN
         SELECT 1 FROM daily_logs
         WHERE user_id = u.id AND date = CURRENT_DATE
       );
-    $$);
+    $cron$);
 
     -- 2. Final Log Warning (10:30 PM Daily for active streaks)
-    PERFORM cron.schedule('final_log_warning_job', '30 22 * * *', $$
+    PERFORM cron.schedule('final_log_warning_job', '30 22 * * *', $cron$
       SELECT net.http_post(
         url := 'https://your-project.supabase.co/functions/v1/schedule_push_notification',
         payload := json_build_object(
@@ -117,10 +117,10 @@ BEGIN
           SELECT 1 FROM daily_logs
           WHERE user_id = u.id AND date = CURRENT_DATE
         );
-    $$);
+    $cron$);
 
     -- 3. Weekly Summary (6:00 PM Sunday)
-    PERFORM cron.schedule('weekly_summary_job', '0 18 * * 0', $$
+    PERFORM cron.schedule('weekly_summary_job', '0 18 * * 0', $cron$
       SELECT net.http_post(
         url := 'https://your-project.supabase.co/functions/v1/schedule_push_notification',
         payload := json_build_object(
@@ -131,6 +131,6 @@ BEGIN
         headers := json_build_object('Content-Type', 'application/json')
       )
       FROM users u;
-    $$);
+    $cron$);
   END IF;
 END $$;

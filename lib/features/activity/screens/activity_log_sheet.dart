@@ -588,7 +588,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.primaryGreen.withOpacity(0.3),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -878,7 +878,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.primaryGreen.withOpacity(0.3),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -1027,7 +1027,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             ),
             value: _energyConfirmed,
             activeTrackColor: AppColors.primaryGreen,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             onChanged: (v) => setState(() => _energyConfirmed = v),
           ),
           const Divider(color: Colors.grey, height: 24),
@@ -1090,7 +1090,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               color: AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primaryGreen.withOpacity(0.3),
+                color: AppColors.primaryGreen.withValues(alpha: 0.3),
               ),
             ),
             child: Column(

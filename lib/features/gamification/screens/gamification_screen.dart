@@ -989,7 +989,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withOpacity(0.2),
+                      color: AppColors.primaryGreen.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
@@ -1007,7 +1007,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.2),
+                      color: Colors.amber.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
