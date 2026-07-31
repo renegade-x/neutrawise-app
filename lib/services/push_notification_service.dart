@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/config/environment.dart';
 import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
+import 'package:neutrawise/providers/auth_provider.dart';
+import 'package:neutrawise/domain/gamification/quiz_engine.dart';
+import 'package:neutrawise/data/repositories/quiz_repository.dart';
+import 'package:neutrawise/features/gamification/widgets/quiz_modal.dart';
 import 'package:neutrawise/routing/router.dart';
 
 class PushNotificationService {
@@ -46,10 +50,10 @@ class PushNotificationService {
     debugPrint("OneSignal logged out");
   }
 
-  static void _handleNotificationTap(
+  static Future<void> _handleNotificationTap(
     WidgetRef ref,
     Map<String, dynamic>? data,
-  ) {
+  ) async {
     if (data == null) return;
     final type = data['type'] as String?;
     debugPrint("Notification tapped with type: $type, data: $data");
@@ -75,7 +79,24 @@ class PushNotificationService {
         break;
 
       case 'quiz_available':
-        ref.read(activeTabProvider.notifier).setTab(3); // AI Assistant / Quiz
+        ref
+            .read(activeTabProvider.notifier)
+            .setTab(2); // Gamification (Eco Club)
+        if (context != null) {
+          final user = ref.read(authProvider).user;
+          if (user != null) {
+            final activeQuizData = await ref.read(
+              activeQuizProvider(user.id).future,
+            );
+            final quiz = activeQuizData['quiz'] as Quiz?;
+            final status = activeQuizData['status'] as QuizStatus?;
+            if (quiz != null &&
+                status == QuizStatus.available &&
+                context.mounted) {
+              QuizModal.show(context, user.id, quiz);
+            }
+          }
+        }
         break;
 
       case 'streak_milestone':

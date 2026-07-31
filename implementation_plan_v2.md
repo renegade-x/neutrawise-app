@@ -318,6 +318,12 @@ This is the **enhanced** implementation plan addressing all 11 gaps identified i
      - Current level title + progress bar to next level
      - XP remaining to level up
      - Show level-up animation when threshold crossed
+   - **Eco Quiz section:**
+     - Card showing bi-weekly quiz availability (48h time-boxed window)
+     - Primary entry: Push notification deep-link tap -> opens `QuizModal` bottom sheet
+     - Secondary entry: "Take Quiz" button inside Gamification screen card
+     - Displays availability countdown, completed status with score, or next scheduled release info (Tue & Fri 9 AM)
+     - Earns up to 130 XP (30 XP attempt base + 5 XP/question + 50 XP perfect score bonus)
    - **Active Challenges section:**
      - Cards for each active challenge
      - Fields: name, category icon, difficulty, days remaining, % progress

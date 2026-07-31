@@ -5,6 +5,9 @@ import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/data/repositories/gamification_repository.dart';
 import 'package:neutrawise/data/repositories/leaderboard_repository.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
+import 'package:neutrawise/domain/gamification/quiz_engine.dart';
+import 'package:neutrawise/data/repositories/quiz_repository.dart';
+import 'package:neutrawise/features/gamification/widgets/quiz_modal.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/widgets/animated_progress_bar.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
@@ -317,6 +320,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
+        _buildQuizCard(userId),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -545,84 +549,68 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
     );
   }
 
+  IconData _getBadgeIcon(String? iconName) {
+    switch (iconName?.toLowerCase()) {
+      case 'directions_car':
+        return Icons.directions_car;
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'bolt':
+        return Icons.bolt;
+      case 'eco':
+        return Icons.eco;
+      case 'shopping_bag':
+        return Icons.shopping_bag;
+      case 'local_fire_department':
+        return Icons.local_fire_department;
+      case 'calendar_today':
+        return Icons.calendar_today;
+      case 'workspace_premium':
+        return Icons.workspace_premium;
+      case 'psychology':
+        return Icons.psychology;
+      case 'star':
+        return Icons.star;
+      case 'park':
+        return Icons.park;
+      case 'emoji_events':
+        return Icons.emoji_events;
+      case 'shield':
+        return Icons.shield;
+      default:
+        return Icons.stars;
+    }
+  }
+
   Widget _buildBadgesTab(List<Map<String, dynamic>> earned) {
     final earnedNames = earned.map((b) => b['badge_name'] as String).toSet();
+    final badgeCatalogAsync = ref.watch(badgeCatalogProvider);
 
-    final List<Map<String, dynamic>> categoryBadges = [
-      {
-        'name': 'Road to Green',
-        'desc': 'Reducing transport emissions',
-        'icon': Icons.directions_car,
-        'criteria':
-            'Awarded when your total transport emissions are reduced by 20% or more compared to your baseline.',
-      },
-      {
-        'name': 'Conscious Plate',
-        'desc': 'Sustainable eating habits',
-        'icon': Icons.restaurant,
-        'criteria':
-            'Awarded when you log at least 3 meatless/sustainable food choices in a week.',
-      },
-      {
-        'name': 'Power Saver',
-        'desc': 'Reducing home energy use',
-        'icon': Icons.bolt,
-        'criteria':
-            'Awarded when your energy emissions are at least 15% below baseline for 5 consecutive days.',
-      },
-      {
-        'name': 'Nature Keeper',
-        'desc': 'Active nature preservation',
-        'icon': Icons.eco,
-        'criteria':
-            'Awarded when you complete at least 2 nature preservation challenges.',
-      },
-      {
-        'name': 'Mindful Consumer',
-        'desc': 'Sustainable living choices',
-        'icon': Icons.shopping_bag,
-        'criteria':
-            'Awarded when you log at least 5 sustainable lifestyle/consumer choices.',
-      },
-    ];
+    final catalogBadges =
+        badgeCatalogAsync.value ?? GamificationRepository.defaultBadgeCatalog;
 
-    final List<Map<String, dynamic>> specialBadges = [
-      {
-        'name': 'Week Warrior 🔥',
-        'desc': '7-day streak milestone',
-        'criteria':
-            'Awarded for logging your carbon footprint for 7 consecutive days.',
-      },
-      {
-        'name': 'Monthly Maven 🌿',
-        'desc': '30-day streak milestone',
-        'criteria':
-            'Awarded for logging your carbon footprint for 30 consecutive days.',
-      },
-      {
-        'name': 'Century Eco 🏆',
-        'desc': '100-day streak milestone',
-        'criteria':
-            'Awarded for logging your carbon footprint for 100 consecutive days.',
-      },
-      {
-        'name': 'Eco Newcomer ✨',
-        'desc': 'First activity log',
-        'criteria': 'Awarded when you log your first activity in the app.',
-      },
-      {
-        'name': 'All-Rounder 🌐',
-        'desc': '1 challenge in all categories',
-        'criteria':
-            'Awarded when you complete at least one challenge in all available categories.',
-      },
-      {
-        'name': 'Carbon Neutral 🌍',
-        'desc': 'Reach Level 10',
-        'criteria':
-            'Awarded when you reach Level 10 of your carbon neutrality journey.',
-      },
-    ];
+    final List<Map<String, dynamic>> categoryBadges = catalogBadges
+        .where((b) => !(b['is_special'] as bool? ?? false))
+        .map(
+          (b) => {
+            'name': b['badge_name'],
+            'desc': b['description'],
+            'icon': _getBadgeIcon(b['icon_name'] as String?),
+            'criteria': b['description'],
+          },
+        )
+        .toList();
+
+    final List<Map<String, dynamic>> specialBadges = catalogBadges
+        .where((b) => (b['is_special'] as bool? ?? false))
+        .map(
+          (b) => {
+            'name': b['badge_name'],
+            'desc': b['description'],
+            'criteria': b['description'],
+          },
+        )
+        .toList();
 
     return GridView.builder(
       padding: const EdgeInsets.all(24),
@@ -903,6 +891,180 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
     );
   }
 
+  Widget _buildQuizCard(String userId) {
+    final quizAsync = ref.watch(activeQuizProvider(userId));
+
+    return quizAsync.when(
+      loading: () => Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (quizData) {
+        final quiz = quizData['quiz'] as Quiz;
+        final attempt = quizData['attempt'] as QuizAttemptResult?;
+        final status = quizData['status'] as QuizStatus;
+
+        final remaining = QuizEngine.getRemainingWindowDuration(
+          quiz: quiz,
+          now: DateTime.now(),
+        );
+
+        final hoursLeft = remaining.inHours;
+        final minsLeft = remaining.inMinutes % 60;
+
+        Widget actionWidget;
+        String badgeText;
+        Color badgeColor;
+
+        if (status == QuizStatus.available) {
+          badgeText = '${hoursLeft}h ${minsLeft}m left';
+          badgeColor = Colors.amber;
+          actionWidget = ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            icon: const Icon(Icons.play_arrow, size: 18),
+            label: const Text('Take Quiz'),
+            onPressed: () => QuizModal.show(context, userId, quiz),
+          );
+        } else if (status == QuizStatus.completed) {
+          badgeText = 'Completed 🌟';
+          badgeColor = AppColors.primaryGreen;
+          actionWidget = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Score: ${attempt?.score ?? 0}/${attempt?.totalQuestions ?? 5} · +${attempt?.xpEarned ?? 0} XP',
+              style: const TextStyle(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          );
+        } else {
+          badgeText = 'Expired';
+          badgeColor = Colors.grey;
+          actionWidget = const Text(
+            'Next quiz: Tue & Fri 9 AM',
+            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
+          );
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: status == QuizStatus.available
+                  ? AppColors.primaryGreen.withValues(alpha: 0.4)
+                  : Colors.white.withValues(alpha: 0.08),
+              width: status == QuizStatus.available ? 1.5 : 1.0,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.psychology,
+                          color: AppColors.primaryGreen,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        quiz.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          quiz.topic,
+                          style: const TextStyle(
+                            color: AppColors.textSecondaryDark,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Earn up to 130 XP · 48h Window',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actionWidget,
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   IconData _getCategoryIcon(String cat) {
     switch (cat.toLowerCase()) {
       case 'transport':
@@ -922,6 +1084,9 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
     String userId,
     List<Map<String, dynamic>> userChallenges,
   ) {
+    final catalogAsync = ref.read(availableChallengesCatalogProvider);
+    final challengeLibrary = catalogAsync.value ?? _challengeLibrary;
+
     final challengeRecords = <String, Map<String, dynamic>>{};
     for (final row in userChallenges) {
       final cId = row['challenge_id'] as String?;
@@ -943,9 +1108,9 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
             width: double.maxFinite,
             height: 380,
             child: ListView.builder(
-              itemCount: _challengeLibrary.length,
+              itemCount: challengeLibrary.length,
               itemBuilder: (context, index) {
-                final c = _challengeLibrary[index];
+                final c = challengeLibrary[index];
                 final id = c['id'] as String;
                 final record = challengeRecords[id];
 
