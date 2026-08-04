@@ -37,12 +37,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       final isAuth = authState.isAuthenticated;
+      final hasSeenOnboarding = authState.hasSeenOnboarding;
       final isLoggingIn =
           state.uri.path == '/login' ||
           state.uri.path == '/signup' ||
           state.uri.path == '/onboarding';
 
       if (!isAuth) {
+        if (!hasSeenOnboarding) {
+          if (state.uri.path == '/onboarding') return null;
+          return '/onboarding';
+        }
         if (isLoggingIn) return null;
         return '/login';
       }

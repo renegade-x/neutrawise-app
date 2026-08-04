@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/widgets/buttons/primary_button.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
@@ -41,6 +43,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
+  void _finishOnboarding(String targetRoute) {
+    ref.read(authProvider.notifier).completeOnboarding();
+    context.push(targetRoute);
+  }
+
   IconData _getIconData(String iconName) {
     switch (iconName) {
       case 'military_tech':
@@ -63,7 +70,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Align(
                 alignment: Alignment.topRight,
                 child: TextButton(
-                  onPressed: () => context.push('/signup'),
+                  onPressed: () => _finishOnboarding('/signup'),
                   child: const Text('Skip'),
                 ),
               )
@@ -140,7 +147,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     : 'Next',
                 onPressed: () {
                   if (_currentIndex == _slides.length - 1) {
-                    context.push('/signup');
+                    _finishOnboarding('/signup');
                   } else {
                     _pageController.nextPage(
                       duration: const Duration(milliseconds: 300),
@@ -156,7 +163,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 const Text('Already have an account?'),
                 TextButton(
-                  onPressed: () => context.push('/login'),
+                  onPressed: () => _finishOnboarding('/login'),
                   child: const Text('Log In'),
                 ),
               ],

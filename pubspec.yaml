@@ -67,6 +67,28 @@ dev_dependencies:
   riverpod_generator: ^4.0.3
   mocktail: ^1.0.5
   golden_toolkit: ^0.15.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.6
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/icon.jpg"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/icon.jpg"
+    background_color: "#000000"
+    theme_color: "#000000"
+
+flutter_native_splash:
+  color: "#000000"
+  image: "assets/images/icon.jpg"
+  android_12:
+    image: "assets/images/icon.jpg"
+    color: "#000000"
+    icon_background_color: "#000000"
+  web: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
