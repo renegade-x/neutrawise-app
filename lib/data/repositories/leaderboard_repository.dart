@@ -87,13 +87,13 @@ class LeaderboardRepository {
 
         if (sprintLeaderboard.isEmpty) {
           // Fallback to global leaderboard if no logs logged this week
-          return getLeaderboard(type: 'global', limit: limit);
+          return await getLeaderboard(type: 'global', limit: limit);
         }
 
         return sprintLeaderboard;
       } else {
         // Friends (Mutual follow network, empty in v1, fallback to global)
-        return getLeaderboard(type: 'global', limit: limit);
+        return await getLeaderboard(type: 'global', limit: limit);
       }
     } catch (e) {
       // In case of error, return empty list

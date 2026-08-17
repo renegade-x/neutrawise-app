@@ -930,12 +930,13 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                       final rank = entry.rank ?? (index + 1);
 
                       Color rankColor = AppColors.textSecondaryDark;
-                      if (rank == 1)
+                      if (rank == 1) {
                         rankColor = const Color(0xFFFFD700); // Gold
-                      if (rank == 2)
+                      } else if (rank == 2) {
                         rankColor = const Color(0xFFC0C0C0); // Silver
-                      if (rank == 3)
+                      } else if (rank == 3) {
                         rankColor = const Color(0xFFCD7F32); // Bronze
+                      }
 
                       return Container(
                         margin: const EdgeInsets.symmetric(
