@@ -14,12 +14,14 @@ class SignUpScreen extends ConsumerStatefulWidget {
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _nameController = TextEditingController();
+  final _cityController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
+    _cityController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -72,19 +74,25 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   Future<void> _signUp() async {
     final name = _nameController.text.trim();
+    final city = _cityController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (name.isEmpty && email.isEmpty && password.isEmpty) {
+    if (name.isEmpty && city.isEmpty && email.isEmpty && password.isEmpty) {
       _showErrorDialog(
         'Empty Fields',
-        'Please fill in all fields (Full Name, Email, and Password).',
+        'Please fill in all fields (Full Name, City, Email, and Password).',
       );
       return;
     }
 
     if (name.isEmpty) {
       _showErrorDialog('Empty Field', 'Please enter your full name.');
+      return;
+    }
+
+    if (city.isEmpty) {
+      _showErrorDialog('Empty Field', 'Please enter your city.');
       return;
     }
 
@@ -117,7 +125,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
     final errorMsg = await ref
         .read(authProvider.notifier)
-        .signUp(email, password, name: name);
+        .signUp(email, password, name: name, city: city);
 
     if (errorMsg != null && mounted) {
       _showErrorDialog('Sign Up Failed', errorMsg);
@@ -155,6 +163,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   labelText: 'Full Name',
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    color: AppColors.textSecondaryDark,
+                  ),
                   labelStyle: TextStyle(color: AppColors.textSecondaryDark),
                   border: OutlineInputBorder(),
                   focusedBorder: OutlineInputBorder(
@@ -165,10 +177,34 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _cityController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'City',
+                  hintText: 'e.g. London, New York, Tokyo',
+                  hintStyle: TextStyle(color: Colors.white30, fontSize: 13),
+                  prefixIcon: Icon(
+                    Icons.location_city_outlined,
+                    color: AppColors.textSecondaryDark,
+                  ),
+                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.primaryGreen),
+                  ),
+                ),
+                keyboardType: TextInputType.streetAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
                 controller: _emailController,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   labelText: 'Email',
+                  prefixIcon: Icon(
+                    Icons.email_outlined,
+                    color: AppColors.textSecondaryDark,
+                  ),
                   labelStyle: TextStyle(color: AppColors.textSecondaryDark),
                   border: OutlineInputBorder(),
                   focusedBorder: OutlineInputBorder(
@@ -183,6 +219,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   labelText: 'Password',
+                  prefixIcon: Icon(
+                    Icons.lock_outline,
+                    color: AppColors.textSecondaryDark,
+                  ),
                   labelStyle: TextStyle(color: AppColors.textSecondaryDark),
                   border: OutlineInputBorder(),
                   focusedBorder: OutlineInputBorder(

@@ -1,12 +1,17 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/data/repositories/gamification_repository.dart';
+import 'package:neutrawise/data/repositories/leaderboard_repository.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
+import 'package:neutrawise/domain/models/user_profile.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/widgets/animated_progress_bar.dart';
+import 'package:neutrawise/widgets/user_avatar.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +25,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _loadingPrefs = true;
   Map<String, dynamic> _notifPrefs = {};
   int _completedChallenges = 0;
+  final ImagePicker _picker = ImagePicker();
+
+  static const List<Map<String, String>> _ecoAvatars = [
+    {'emoji': '🌿', 'name': 'Leaf Guardian'},
+    {'emoji': '☀️', 'name': 'Solar Hero'},
+    {'emoji': '🌊', 'name': 'Ocean Keeper'},
+    {'emoji': '⚡', 'name': 'Energy Master'},
+    {'emoji': '🌲', 'name': 'Forest Ranger'},
+    {'emoji': '🚲', 'name': 'Eco Cyclist'},
+    {'emoji': '🐾', 'name': 'Wildlife Guard'},
+    {'emoji': '🌍', 'name': 'Earth Steward'},
+    {'emoji': '🌸', 'name': 'Eco Bloom'},
+    {'emoji': '🦊', 'name': 'Forest Fox'},
+    {'emoji': '🐢', 'name': 'Sea Turtle'},
+    {'emoji': '🐝', 'name': 'Honey Bee'},
+  ];
 
   @override
   void initState() {
@@ -53,6 +74,406 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final userRepo = ref.read(userRepositoryProvider);
       await userRepo.saveNotificationPreferences(user.id, _notifPrefs);
     }
+  }
+
+  Future<void> _updateAvatar(UserProfile profile, String? newAvatarUrl) async {
+    try {
+      final updated = profile.copyWith(avatarUrl: newAvatarUrl);
+      await ref.read(userRepositoryProvider).saveUserProfile(updated);
+      ref.invalidate(userProfileProvider(profile.id));
+      ref.invalidate(leaderboardProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newAvatarUrl == null
+                  ? 'Profile picture removed.'
+                  : 'Profile picture updated successfully!',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update avatar: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickImage(UserProfile profile, ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 400,
+        maxHeight: 400,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        await _updateAvatar(profile, base64String);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImageUrlDialog(UserProfile profile) {
+    final urlCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Image URL',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: urlCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'https://example.com/avatar.jpg',
+            hintStyle: TextStyle(color: Colors.white30),
+            labelText: 'Image Link',
+            labelStyle: TextStyle(color: AppColors.textSecondaryDark),
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final url = urlCtrl.text.trim();
+              if (url.isNotEmpty) {
+                Navigator.pop(ctx);
+                _updateAvatar(profile, url);
+              }
+            },
+            child: const Text('Set Image'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProfilePictureModal(UserProfile profile) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Profile Picture',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Choose how you appear on the leaderboard & dashboard',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: UserAvatar(
+                avatarUrl: profile.avatarUrl,
+                name: profile.name,
+                radius: 44,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildActionIconButton(
+                  icon: Icons.camera_alt,
+                  label: 'Camera',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(profile, ImageSource.camera);
+                  },
+                ),
+                _buildActionIconButton(
+                  icon: Icons.photo_library,
+                  label: 'Gallery',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(profile, ImageSource.gallery);
+                  },
+                ),
+                _buildActionIconButton(
+                  icon: Icons.link,
+                  label: 'URL',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showImageUrlDialog(profile);
+                  },
+                ),
+                if (profile.avatarUrl != null &&
+                    profile.avatarUrl!.trim().isNotEmpty)
+                  _buildActionIconButton(
+                    icon: Icons.delete_outline,
+                    label: 'Remove',
+                    color: Colors.redAccent,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _updateAvatar(profile, null);
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Divider(color: Colors.white12),
+            const SizedBox(height: 12),
+            const Text(
+              'Or Choose an Eco Avatar',
+              style: TextStyle(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.9,
+              ),
+              itemCount: _ecoAvatars.length,
+              itemBuilder: (context, index) {
+                final item = _ecoAvatars[index];
+                final emoji = item['emoji']!;
+                final name = item['name']!;
+                final isSelected = profile.avatarUrl == 'emoji:$emoji';
+
+                return InkWell(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _updateAvatar(profile, 'emoji:$emoji');
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primaryGreen.withValues(alpha: 0.25)
+                          : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primaryGreen
+                            : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(emoji, style: const TextStyle(fontSize: 26)),
+                        const SizedBox(height: 4),
+                        Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.textSecondaryDark,
+                            fontSize: 10,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionIconButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color color = AppColors.primaryGreen,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color == Colors.redAccent
+                    ? Colors.redAccent
+                    : Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditProfileModal(UserProfile profile) {
+    final nameCtrl = TextEditingController(text: profile.name);
+    final cityCtrl = TextEditingController(text: profile.city ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Edit Profile Details',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                prefixIcon: Icon(
+                  Icons.person_outline,
+                  color: AppColors.textSecondaryDark,
+                ),
+                labelStyle: TextStyle(color: AppColors.textSecondaryDark),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: cityCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'City',
+                hintText: 'e.g. London, New York, Tokyo',
+                hintStyle: TextStyle(color: Colors.white30),
+                prefixIcon: Icon(
+                  Icons.location_city_outlined,
+                  color: AppColors.textSecondaryDark,
+                ),
+                labelStyle: TextStyle(color: AppColors.textSecondaryDark),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = nameCtrl.text.trim();
+              final newCity = cityCtrl.text.trim();
+
+              if (newName.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Name cannot be empty')),
+                );
+                return;
+              }
+
+              final updated = profile.copyWith(
+                name: newName,
+                city: newCity.isEmpty ? null : newCity,
+              );
+
+              await ref.read(userRepositoryProvider).saveUserProfile(updated);
+              ref.invalidate(userProfileProvider(profile.id));
+              ref.invalidate(leaderboardProvider);
+
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Profile details updated successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   IconData _getBadgeIcon(String name) {
@@ -203,39 +624,97 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // User Header Info
+                    // User Header Info with Avatar & Edit Options
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        CircleAvatar(
-                          radius: 36,
-                          backgroundColor: AppColors.primaryGreen.withValues(
-                            alpha: 0.1,
-                          ),
-                          child: const Icon(
-                            Icons.person,
-                            size: 40,
-                            color: AppColors.primaryGreen,
-                          ),
+                        UserAvatar(
+                          avatarUrl: profile.avatarUrl,
+                          name: profile.name,
+                          radius: 38,
+                          showEditBadge: true,
+                          onTap: () => _showProfilePictureModal(profile),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                profile.name,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      profile.name,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      size: 18,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                    onPressed: () =>
+                                        _showEditProfileModal(profile),
+                                    tooltip: 'Edit Profile Details',
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
                               Text(
                                 profile.email ?? '',
                                 style: const TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   color: AppColors.textSecondaryDark,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: () => _showEditProfileModal(profile),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.primaryGreen.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.location_on,
+                                        size: 13,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        profile.city != null &&
+                                                profile.city!.trim().isNotEmpty
+                                            ? profile.city!.trim()
+                                            : 'Add City',
+                                        style: const TextStyle(
+                                          color: AppColors.primaryGreen,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -258,19 +737,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           '${profile.currentStreak} days',
                         ),
                         _buildStatItem('Days Active', '${profile.daysActive}'),
-                        _buildStatItem('Challenges', '$_completedChallenges'),
+                        _buildStatItem('Level', '$currentLevel'),
                       ],
                     ),
                     const SizedBox(height: 32),
 
-                    // Level card
+                    // Level Banner Card
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(20.0),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceDark,
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.surfaceDark,
+                            AppColors.primaryGreen.withValues(alpha: 0.15),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: AppColors.primaryGreen.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Column(
@@ -279,36 +765,59 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Level $currentLevel: $levelTitle',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Level $currentLevel: $levelTitle',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$currentXp XP Total',
+                                    style: const TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const Icon(
-                                Icons.military_tech,
-                                color: AppColors.warning,
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryGreen.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.shield,
+                                  color: AppColors.primaryGreen,
+                                  size: 28,
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           AnimatedProgressBar(
                             value: levelProgress,
-                            backgroundColor: Colors.white10,
                             valueColor: AppColors.primaryGreen,
-                            minHeight: 8,
-                            borderRadius: BorderRadius.circular(4),
+                            backgroundColor: Colors.white10,
+                            minHeight: 10,
+                            borderRadius: BorderRadius.circular(5),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             xpToNext > 0
-                                ? '$xpToNext XP to next level'
-                                : 'Max Level Reached',
+                                ? '$xpToNext XP to Level ${currentLevel + 1}'
+                                : 'Max Level Reached!',
                             style: const TextStyle(
-                              color: AppColors.textSecondaryDark,
                               fontSize: 12,
+                              color: AppColors.textSecondaryDark,
                             ),
                           ),
                         ],
@@ -316,76 +825,113 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Badge Showcase (Horizontal list)
-                    const Text(
-                      'Earned Badges',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                    // Earned Badges Section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Badges Earned',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        badgesAsync.maybeWhen(
+                          data: (badges) => Text(
+                            '${badges.length} Unlocked',
+                            style: const TextStyle(
+                              color: AppColors.primaryGreen,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          orElse: () => const SizedBox(),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     badgesAsync.when(
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (e, st) =>
-                          Center(child: Text('Error loading badges: $e')),
+                      error: (e, st) => Text(
+                        'Failed to load badges: $e',
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
                       data: (badges) {
                         if (badges.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16.0),
-                            child: Text(
-                              'No badges earned yet. Keep completing challenges!',
-                              style: TextStyle(
-                                color: AppColors.textSecondaryDark,
-                                fontSize: 13,
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceDark,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'No badges earned yet. Complete challenges to unlock them!',
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryDark,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           );
                         }
+
                         return SizedBox(
-                          height: 90,
+                          height: 110,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: badges.length,
                             itemBuilder: (context, index) {
-                              final b = badges[index];
-                              final badgeName = b['badge_name'] as String;
+                              final badge = badges[index];
+                              final badgeName = badge['badge_name'] ?? 'Badge';
                               final badgeDesc =
-                                  b['badge_desc'] as String? ?? '';
+                                  badge['badge_description'] ??
+                                  'Great achievement!';
+
                               return GestureDetector(
                                 onTap: () =>
                                     _showBadgeDialog(badgeName, badgeDesc),
                                 child: Container(
+                                  width: 90,
                                   margin: const EdgeInsets.only(right: 12),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
+                                  padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: AppColors.surfaceDark,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: AppColors.primaryGreen.withValues(
-                                        alpha: 0.2,
+                                        alpha: 0.3,
                                       ),
                                     ),
                                   ),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(
-                                        _getBadgeIcon(badgeName),
-                                        color: AppColors.warning,
-                                        size: 28,
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryGreen
+                                              .withValues(alpha: 0.15),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          _getBadgeIcon(badgeName),
+                                          color: AppColors.primaryGreen,
+                                          size: 24,
+                                        ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Text(
                                         badgeName,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           color: Colors.white,
-                                          fontSize: 12,
+                                          fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -397,6 +943,59 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         );
                       },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Challenges Summary Card
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceDark,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen.withValues(
+                                alpha: 0.15,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.emoji_events,
+                              color: AppColors.primaryGreen,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Completed Challenges',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$_completedChallenges challenges accomplished',
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondaryDark,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 32),
 
@@ -602,7 +1201,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (passwordCtrl.text.isNotEmpty) {
-                  // In Supabase, update password
                   await ref
                       .read(authProvider.notifier)
                       .updatePassword(passwordCtrl.text);
@@ -649,7 +1247,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 backgroundColor: Colors.redAccent,
               ),
               onPressed: () async {
-                // Perform delete account cascade
                 await ref.read(authProvider.notifier).deleteAccount();
                 if (context.mounted) {
                   Navigator.pop(context);

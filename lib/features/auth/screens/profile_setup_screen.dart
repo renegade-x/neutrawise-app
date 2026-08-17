@@ -81,6 +81,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             user.email?.split('@').first ??
             'User',
         email: user.email,
+        city: user.userMetadata?['city'] as String?,
         primaryTransport: _primaryTransport,
         fuelType: _fuelType,
         engineSize: _engineSize,

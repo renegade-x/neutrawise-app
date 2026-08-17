@@ -19,6 +19,7 @@ import 'package:neutrawise/services/push_notification_service.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
 import 'package:neutrawise/routing/router.dart';
 import 'package:neutrawise/widgets/charts/emissions_chart.dart';
+import 'package:neutrawise/widgets/user_avatar.dart';
 
 class ActiveTabNotifier extends Notifier<int> {
   @override
@@ -288,28 +289,89 @@ class _DashboardContent extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Hello, ${profile.name}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                "Let's make an impact today.",
-                                style: TextStyle(
-                                  color: AppColors.textSecondaryDark,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    ref
+                                        .read(activeTabProvider.notifier)
+                                        .setTab(4); // Navigate to Profile tab
+                                  },
+                                  child: UserAvatar(
+                                    avatarUrl: profile.avatarUrl,
+                                    name: profile.name,
+                                    radius: 22,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Hello, ${profile.name}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge
+                                            ?.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          if (profile.city != null &&
+                                              profile.city!
+                                                  .trim()
+                                                  .isNotEmpty) ...[
+                                            Icon(
+                                              Icons.location_on,
+                                              size: 13,
+                                              color: AppColors.primaryGreen
+                                                  .withValues(alpha: 0.8),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              profile.city!.trim(),
+                                              style: TextStyle(
+                                                color: AppColors.primaryGreen
+                                                    .withValues(alpha: 0.8),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Text(
+                                              '•',
+                                              style: TextStyle(
+                                                color:
+                                                    AppColors.textSecondaryDark,
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ],
+                                          const Text(
+                                            "Let's make an impact",
+                                            style: TextStyle(
+                                              color:
+                                                  AppColors.textSecondaryDark,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,

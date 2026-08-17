@@ -47,11 +47,12 @@ class LeaderboardRepository {
           return LeaderboardEntry.fromJson(json);
         }).toList();
       } else if (type == 'city') {
-        if (city == null || city.isEmpty) return [];
+        if (city == null || city.trim().isEmpty) return [];
+        final cleanCity = city.trim();
         final List<dynamic> response = await _client
             .from('users')
             .select('id, name, avatar_url, xp, level')
-            .eq('city', city)
+            .ilike('city', cleanCity)
             .order('xp', ascending: false)
             .limit(limit);
 

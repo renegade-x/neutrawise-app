@@ -7,10 +7,12 @@ import 'package:neutrawise/data/repositories/leaderboard_repository.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 import 'package:neutrawise/domain/gamification/quiz_engine.dart';
 import 'package:neutrawise/data/repositories/quiz_repository.dart';
-import 'package:neutrawise/features/gamification/widgets/quiz_modal.dart';
+import 'package:neutrawise/domain/models/user_profile.dart';
+import 'package:neutrawise/widgets/user_avatar.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/widgets/animated_progress_bar.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
+import 'package:neutrawise/features/gamification/widgets/quiz_modal.dart';
 
 class GamificationScreen extends ConsumerStatefulWidget {
   const GamificationScreen({super.key});
@@ -288,7 +290,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                               const Center(child: CircularProgressIndicator()),
                           error: (e, st) => Center(child: Text('Error: $e')),
                           data: (leaderboard) =>
-                              _buildLeaderboardTab(profile.id, leaderboard),
+                              _buildLeaderboardTab(profile, leaderboard),
                         ),
                       ],
                     ),
@@ -769,7 +771,12 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
     );
   }
 
-  Widget _buildLeaderboardTab(String currentUserId, List<dynamic> entries) {
+  Widget _buildLeaderboardTab(UserProfile profile, List<dynamic> entries) {
+    final currentUserId = profile.id;
+    final userCity = profile.city?.trim();
+    final isCityTab = _leaderboardType == 'city';
+    final hasCity = userCity != null && userCity.isNotEmpty;
+
     return Column(
       children: [
         // Sub-tabs for Leaderboard tiers
@@ -783,10 +790,14 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                 const SizedBox(width: 16),
                 ...['global', 'city', 'weekly_sprint', 'friends'].map((type) {
                   final isSelected = _leaderboardType == type;
+                  final label = type == 'city' && hasCity
+                      ? 'CITY (${userCity.toUpperCase()})'
+                      : type.replaceAll('_', ' ').toUpperCase();
+
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: ChoiceChip(
-                      label: Text(type.replaceAll('_', ' ').toUpperCase()),
+                      label: Text(label),
                       selected: isSelected,
                       selectedColor: AppColors.primaryGreen,
                       backgroundColor: Colors.white10,
@@ -812,24 +823,119 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
           ),
         ),
 
+        // City Banner Header if city tab is active
+        if (isCityTab && hasCity)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primaryGreen.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.location_on,
+                  size: 18,
+                  color: AppColors.primaryGreen,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Eco-Warriors in $userCity',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${entries.length} members',
+                  style: const TextStyle(
+                    color: AppColors.textSecondaryDark,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(leaderboardProvider(_leaderboardType));
             },
-            child: entries.isEmpty
-                ? const Center(
+            child: isCityTab && !hasCity
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen.withValues(
+                                alpha: 0.1,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.location_city_outlined,
+                              size: 40,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No City Set',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Set your city in your profile to view and compete with fellow eco-warriors in your city.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textSecondaryDark,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : entries.isEmpty
+                ? Center(
                     child: Text(
-                      'No entries found',
-                      style: TextStyle(color: Colors.white),
+                      isCityTab
+                          ? 'No other users found in $userCity yet.'
+                          : 'No entries found',
+                      style: const TextStyle(color: Colors.white),
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: entries.length,
                     itemBuilder: (context, index) {
                       final entry = entries[index];
                       final isCurrentUser = entry.userId == currentUserId;
+                      final rank = entry.rank ?? (index + 1);
+
+                      Color rankColor = AppColors.textSecondaryDark;
+                      if (rank == 1)
+                        rankColor = const Color(0xFFFFD700); // Gold
+                      if (rank == 2)
+                        rankColor = const Color(0xFFC0C0C0); // Silver
+                      if (rank == 3)
+                        rankColor = const Color(0xFFCD7F32); // Bronze
 
                       return Container(
                         margin: const EdgeInsets.symmetric(
@@ -840,7 +946,7 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                           color: isCurrentUser
                               ? AppColors.primaryGreen.withValues(alpha: 0.15)
                               : AppColors.surfaceDark,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isCurrentUser
                                 ? AppColors.primaryGreen.withValues(alpha: 0.4)
@@ -848,24 +954,69 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                           ),
                         ),
                         child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.white10,
-                            child: Text(
-                              '${entry.rank ?? (index + 1)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: (entry.rank ?? (index + 1)) <= 3
-                                    ? AppColors.warning
-                                    : Colors.white,
-                              ),
-                            ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
                           ),
-                          title: Text(
-                            entry.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                          leading: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 26,
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '#$rank',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: rankColor,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              UserAvatar(
+                                avatarUrl: entry.avatarUrl,
+                                name: entry.name,
+                                radius: 18,
+                              ),
+                            ],
+                          ),
+                          title: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  entry.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isCurrentUser) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'YOU',
+                                    style: TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           subtitle: Text(
                             'Level ${entry.level}',

@@ -17,11 +17,12 @@ class AuthRepository {
     required String email,
     required String password,
     String? name,
+    String? city,
   }) async {
     return await _auth.signUp(
       email: email,
       password: password,
-      data: name != null ? {'name': name} : null,
+      data: {'name': ?name, 'city': ?city},
     );
   }
 
