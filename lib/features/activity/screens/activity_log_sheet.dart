@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/domain/models/user_profile.dart';
 import 'package:neutrawise/domain/co2_engine/co2_calculator.dart';
@@ -15,6 +14,7 @@ import 'package:neutrawise/domain/co2_engine/emission_factors.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
 import 'package:neutrawise/routing/router.dart';
+import 'package:neutrawise/data/repositories/gamification_repository.dart';
 
 class ActivityLogSheet extends ConsumerStatefulWidget {
   final DailyLog? existingLog;
@@ -299,77 +299,149 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           log.co2SavedVsBaseline -
           (widget.existingLog?.co2SavedVsBaseline ?? 0.0);
 
-      // Fetch the latest log metadata from DB to determine previous log date and time
-      final latestLogResponse = await Supabase.instance.client
-          .from('daily_logs')
-          .select('created_at, date')
-          .eq('user_id', user.id)
-          .order('date', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      DateTime? lastLogTime;
-      String? lastLogDateString;
-      if (latestLogResponse != null) {
-        final lastLogTimeStr = latestLogResponse['created_at'] as String?;
-        if (lastLogTimeStr != null) {
-          lastLogTime = DateTime.parse(lastLogTimeStr);
-        }
-        lastLogDateString = latestLogResponse['date'] as String?;
-      }
-
       final now = DateTime.now();
-      final newStreak = GamificationEngine.calculateNewStreak(
-        currentStreak: profile.currentStreak,
-        lastLogTime: lastLogTime,
-        now: now,
-        lastLogDateString: lastLogDateString,
-        todayDateString: date,
-      );
+      final todayDate = DateTime(now.year, now.month, now.day);
+      final isFullLog =
+          _transportEntries.isNotEmpty &&
+          _foodEntries.isNotEmpty &&
+          _energyConfirmed;
+
+      int newStreakDays = profile.effectiveStreak;
+      int newFullLogStreakDays = profile.fullLogStreakDays;
+      bool freezeUsed = false;
+
+      if (profile.lastLogDate != null) {
+        final lastLog = DateTime.tryParse(profile.lastLogDate!);
+        if (lastLog != null) {
+          final lastLogDateOnly = DateTime(
+            lastLog.year,
+            lastLog.month,
+            lastLog.day,
+          );
+          final gapDays = todayDate.difference(lastLogDateOnly).inDays;
+
+          if (gapDays == 1) {
+            newStreakDays += 1;
+            if (isFullLog) newFullLogStreakDays += 1;
+          } else if (gapDays > 1) {
+            if (profile.streakFreezeHeld) {
+              freezeUsed = true;
+              newStreakDays += 1;
+              if (isFullLog) newFullLogStreakDays += 1;
+            } else {
+              newStreakDays = 0;
+              newFullLogStreakDays = isFullLog ? 1 : 0;
+            }
+          }
+        }
+      } else {
+        newStreakDays = 0;
+        newFullLogStreakDays = isFullLog ? 1 : 0;
+      }
 
       int daysActive = profile.daysActive;
       if (profile.createdAt != null) {
-        final signupDateTime = DateTime.parse(profile.createdAt!);
-        final signupDate = DateTime(
-          signupDateTime.year,
-          signupDateTime.month,
-          signupDateTime.day,
-        );
-        final todayDate = DateTime(now.year, now.month, now.day);
-        daysActive = todayDate.difference(signupDate).inDays + 1;
-        if (daysActive < 1) daysActive = 1;
+        final signupDateTime = DateTime.tryParse(profile.createdAt!);
+        if (signupDateTime != null) {
+          final signupDate = DateTime(
+            signupDateTime.year,
+            signupDateTime.month,
+            signupDateTime.day,
+          );
+          daysActive = todayDate.difference(signupDate).inDays + 1;
+          if (daysActive < 1) daysActive = 1;
+        }
       }
 
-      final newXp = profile.xp + xpDelta;
-      final newLevel = GamificationEngine.getLevelFromXp(newXp);
+      final isFirstLog = profile.lastLogDate == null;
+      final streakMilestoneResult = await ref
+          .read(gamificationRepositoryProvider)
+          .processStreakMilestonesAndBadges(
+            userId: user.id,
+            streakDays: newStreakDays,
+            level: profile.level,
+            isFirstLog: isFirstLog,
+          );
+
+      final int bonusXp =
+          (streakMilestoneResult['milestoneXpBonus'] as int?) ?? 0;
+      final bool freezeAwarded =
+          streakMilestoneResult['freezeAwarded'] as bool? ?? false;
+      final bool freezeQueued =
+          streakMilestoneResult['freezeQueued'] as bool? ?? false;
+
+      final totalXpToAdd = xpDelta + bonusXp;
+      final newLifetimeXp = profile.effectiveXp + totalXpToAdd;
+      final newMonthlyXp = profile.monthlyXp + totalXpToAdd;
+      final newLevel = GamificationEngine.getLevelFromXp(newLifetimeXp);
+
+      bool finalFreezeHeld = freezeUsed ? false : profile.streakFreezeHeld;
+      bool finalFreezeQueued = profile.streakFreezeQueued;
+
+      if (freezeUsed) {
+        await ref
+            .read(gamificationRepositoryProvider)
+            .awardBadge(user.id, 'Streak Saver 🛡️', 'Special', 'Special');
+      }
+
+      if (freezeAwarded) {
+        finalFreezeHeld = true;
+      }
+      if (freezeQueued) {
+        finalFreezeQueued = true;
+      }
+      if (newLevel >= 4 && finalFreezeQueued) {
+        finalFreezeHeld = true;
+        finalFreezeQueued = false;
+      }
 
       final updatedProfile = profile.copyWith(
-        xp: newXp,
+        lifetimeXp: newLifetimeXp,
+        monthlyXp: newMonthlyXp,
+        xp: newLifetimeXp,
         level: newLevel,
-        currentStreak: newStreak,
-        longestStreak: newStreak > profile.longestStreak
-            ? newStreak
+        streakDays: newStreakDays,
+        fullLogStreakDays: newFullLogStreakDays,
+        currentStreak: newStreakDays,
+        longestStreak: newStreakDays > profile.longestStreak
+            ? newStreakDays
             : profile.longestStreak,
+        lastLogDate: date,
+        streakFreezeHeld: finalFreezeHeld,
+        streakFreezeQueued: finalFreezeQueued,
         daysActive: daysActive,
         totalCo2Saved: profile.totalCo2Saved + savedDelta,
       );
       await ref.read(userRepositoryProvider).saveUserProfile(updatedProfile);
 
+      // Automatic Challenge Progress Evaluation Engine
+      final completedChallenges = await ref
+          .read(gamificationRepositoryProvider)
+          .evaluateChallengesForUser(user.id, log);
+
       if (mounted && context.mounted) {
         ref.invalidate(recentLogsProvider(user.id));
         ref.invalidate(userProfileProvider(user.id));
+        ref.invalidate(activeChallengesProvider(user.id));
+        ref.invalidate(userBadgesProvider(user.id));
 
         Navigator.pop(context);
 
-        if (newLevel > profile.level) {
-          final rootContext = rootNavigatorKey.currentContext;
-          if (rootContext != null) {
-            CelebrationModal.showLevelUp(
+        final rootContext = rootNavigatorKey.currentContext;
+        if (completedChallenges.isNotEmpty && rootContext != null) {
+          for (final c in completedChallenges) {
+            CelebrationModal.showChallengeComplete(
               rootContext,
-              newLevel,
-              GamificationEngine.getLevelTitle(newLevel),
+              c['name'] as String? ?? 'Eco Challenge',
+              c['xp_earned'] as int? ?? 100,
             );
           }
+        } else if (newLevel > profile.level && rootContext != null) {
+          CelebrationModal.showLevelUp(
+            rootContext,
+            newLevel,
+            GamificationEngine.getLevelTitle(newLevel),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -416,9 +488,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
-      decoration: const BoxDecoration(
-        color: AppColors.backgroundDark,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppColors.background(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: DefaultTabController(
         length: 3,
@@ -429,29 +501,29 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[700],
+                color: AppColors.divider(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Log Today\'s Activity',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.textPrimary(context),
               ),
             ),
             const SizedBox(height: 12),
-            const TabBar(
-              tabs: [
+            TabBar(
+              tabs: const [
                 Tab(icon: Icon(Icons.directions_car), text: 'Travel'),
                 Tab(icon: Icon(Icons.restaurant), text: 'Food'),
                 Tab(icon: Icon(Icons.bolt), text: 'Energy'),
               ],
               indicatorColor: AppColors.primaryGreen,
               labelColor: AppColors.primaryGreen,
-              unselectedLabelColor: AppColors.textSecondaryDark,
+              unselectedLabelColor: AppColors.textSecondary(context),
             ),
             Expanded(
               child: TabBarView(
@@ -465,17 +537,17 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             // Estimated Impact Summary Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              color: AppColors.surfaceDark,
+              color: AppColors.surface(context),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Total Estimated CO₂:',
                         style: TextStyle(
-                          color: AppColors.textSecondaryDark,
+                          color: AppColors.textSecondary(context),
                           fontSize: 12,
                         ),
                       ),
@@ -493,17 +565,17 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
+                        Text(
                           'Daily Baseline:',
                           style: TextStyle(
-                            color: AppColors.textSecondaryDark,
+                            color: AppColors.textSecondary(context),
                             fontSize: 12,
                           ),
                         ),
                         Text(
                           '${profile!.totalDailyBaselineCo2!.toStringAsFixed(2)} kg CO₂e',
                           style: TextStyle(
-                            color: Colors.grey[300],
+                            color: AppColors.textPrimary(context),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -542,8 +614,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         children: [
           DropdownButtonFormField<String>(
             initialValue: _transportMode,
-            dropdownColor: AppColors.surfaceDark,
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: AppColors.surface(context),
+            style: TextStyle(color: AppColors.textPrimary(context)),
             decoration: const InputDecoration(
               labelText: 'Transport Mode',
               border: OutlineInputBorder(),
@@ -572,7 +644,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           TextFormField(
             controller: _distanceCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: AppColors.textPrimary(context)),
             decoration: const InputDecoration(
               labelText: 'Distance (0 - 1000 km)',
               border: OutlineInputBorder(),
@@ -585,7 +657,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: AppColors.surface(context),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: AppColors.primaryGreen.withValues(alpha: 0.3),
@@ -623,18 +695,21 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             onPressed: () => _addTransportTrip(profile),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Today\'s Logged Trips:',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
+            ),
           ),
           const SizedBox(height: 8),
           if (_transportEntries.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Text(
                 'No trips added yet for today.',
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: AppColors.textSecondary(context),
                   fontSize: 13,
                 ),
               ),
@@ -649,19 +724,19 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     profile,
                   );
               return Card(
-                color: AppColors.surfaceDark,
+                color: AppColors.surface(context),
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
                   title: Text(
                     entry.value.mode.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   subtitle: Text(
                     '${entry.value.distanceKm} km',
-                    style: const TextStyle(color: AppColors.textSecondaryDark),
+                    style: TextStyle(color: AppColors.textSecondary(context)),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -715,8 +790,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         children: [
           DropdownButtonFormField<String>(
             initialValue: _mealSlot,
-            dropdownColor: AppColors.surfaceDark,
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: AppColors.surface(context),
+            style: TextStyle(color: AppColors.textPrimary(context)),
             decoration: const InputDecoration(
               labelText: 'Meal Slot',
               border: OutlineInputBorder(),
@@ -752,13 +827,13 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Food Search (Open Food Facts)',
-                      border: OutlineInputBorder(),
+                    style: TextStyle(color: AppColors.textPrimary(context)),
+                    decoration: InputDecoration(
+                      labelText: 'Food Search (Pakistani Dishes & OFF)',
+                      border: const OutlineInputBorder(),
                       prefixIcon: Icon(
                         Icons.search,
-                        color: AppColors.textSecondaryDark,
+                        color: AppColors.textSecondary(context),
                       ),
                     ),
                     onChanged: (val) {
@@ -775,7 +850,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 alignment: Alignment.topLeft,
                 child: Material(
                   elevation: 4.0,
-                  color: AppColors.surfaceDark,
+                  color: AppColors.surface(context),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(
                       maxHeight: 200,
@@ -789,11 +864,15 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                         return ListTile(
                           title: Text(
                             option.name,
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: AppColors.textPrimary(context),
+                            ),
                           ),
                           subtitle: Text(
                             option.brand ?? '',
-                            style: TextStyle(color: Colors.grey[400]),
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                            ),
                           ),
                           onTap: () => onSelected(option),
                         );
@@ -810,8 +889,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: _servingSize,
-                  dropdownColor: AppColors.surfaceDark,
-                  style: const TextStyle(color: Colors.white),
+                  dropdownColor: AppColors.surface(context),
+                  style: TextStyle(color: AppColors.textPrimary(context)),
                   decoration: const InputDecoration(
                     labelText: 'Serving Size',
                     border: OutlineInputBorder(),
@@ -840,7 +919,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: AppColors.textPrimary(context)),
                   decoration: const InputDecoration(
                     labelText: 'Amount (grams)',
                     border: OutlineInputBorder(),
@@ -854,8 +933,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _foodCategory,
-            dropdownColor: AppColors.surfaceDark,
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: AppColors.surface(context),
+            style: TextStyle(color: AppColors.textPrimary(context)),
             decoration: const InputDecoration(
               labelText: 'Fallback Food Category',
               border: OutlineInputBorder(),
@@ -875,7 +954,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: AppColors.surface(context),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: AppColors.primaryGreen.withValues(alpha: 0.3),
@@ -913,18 +992,21 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             onPressed: _addMeal,
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Today\'s Logged Meals:',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
+            ),
           ),
           const SizedBox(height: 8),
           if (_foodEntries.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Text(
                 'No meals added yet for today.',
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: AppColors.textSecondary(context),
                   fontSize: 13,
                 ),
               ),
@@ -939,19 +1021,19 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     entry.value.co2Per100g,
                   );
               return Card(
-                color: AppColors.surfaceDark,
+                color: AppColors.surface(context),
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
                   title: Text(
                     '${entry.value.mealSlot}: ${entry.value.foodName}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   subtitle: Text(
                     '${entry.value.category.replaceAll('_', ' ')} (${entry.value.grams}g)',
-                    style: const TextStyle(color: AppColors.textSecondaryDark),
+                    style: TextStyle(color: AppColors.textSecondary(context)),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1011,17 +1093,17 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SwitchListTile(
-            title: const Text(
+            title: Text(
               'Confirm Energy Usage for Today',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary(context),
                 fontWeight: FontWeight.bold,
               ),
             ),
-            subtitle: const Text(
+            subtitle: Text(
               'Required to include daily energy baseline & deviations in log',
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: AppColors.textSecondary(context),
                 fontSize: 12,
               ),
             ),
@@ -1030,19 +1112,22 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             activeThumbColor: Colors.white,
             onChanged: (v) => setState(() => _energyConfirmed = v),
           ),
-          const Divider(color: Colors.grey, height: 24),
-          const Text(
+          Divider(color: AppColors.divider(context), height: 24),
+          Text(
             'How was your energy use today?',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary(context),
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Select any deviations from your normal household usage:',
-            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+            style: TextStyle(
+              color: AppColors.textSecondary(context),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 14),
           Wrap(
@@ -1062,9 +1147,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 selected: isSelected,
                 selectedColor: AppColors.primaryGreen,
                 checkmarkColor: Colors.white,
-                backgroundColor: AppColors.surfaceDark,
+                backgroundColor: AppColors.surface(context),
                 labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey[300],
+                  color: isSelected
+                      ? Colors.white
+                      : AppColors.textSecondary(context),
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
                 onSelected: (bool selected) {
@@ -1087,7 +1174,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
+              color: AppColors.surface(context),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: AppColors.primaryGreen.withValues(alpha: 0.3),
@@ -1103,7 +1190,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     Text(
                       'Energy Breakdown Today',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.primaryGreen,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -1114,9 +1201,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Status:',
-                      style: TextStyle(color: AppColors.textSecondaryDark),
+                      style: TextStyle(color: AppColors.textSecondary(context)),
                     ),
                     Text(
                       _energyConfirmed ? 'CONFIRMED' : 'UNCONFIRMED',
@@ -1133,13 +1220,13 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Daily Baseline kWh:',
-                      style: TextStyle(color: AppColors.textSecondaryDark),
+                      style: TextStyle(color: AppColors.textSecondary(context)),
                     ),
                     Text(
                       '${(profile?.dailyEnergyBaselineKwh ?? 0.0).toStringAsFixed(1)} kWh/day',
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: AppColors.textPrimary(context)),
                     ),
                   ],
                 ),
@@ -1147,26 +1234,26 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Active Deviations:',
-                      style: TextStyle(color: AppColors.textSecondaryDark),
+                      style: TextStyle(color: AppColors.textSecondary(context)),
                     ),
                     Text(
                       _energyDeviations.isEmpty
                           ? 'None (Typical)'
                           : '${_energyDeviations.length} selected',
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: AppColors.textPrimary(context)),
                     ),
                   ],
                 ),
-                const Divider(color: Colors.grey, height: 20),
+                Divider(color: AppColors.divider(context), height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Estimated Energy CO₂:',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary(context),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

@@ -52,6 +52,7 @@ abstract class DailyLog with _$DailyLog {
     @Default([])
     List<String> energyDeviations,
     @JsonKey(name: 'energy_co2') @Default(0.0) double energyCo2,
+    @JsonKey(name: 'energy_confirmed') @Default(false) bool energyConfirmed,
 
     @JsonKey(name: 'total_daily_co2') @Default(0.0) double totalDailyCo2,
     @JsonKey(name: 'baseline_co2') @Default(0.0) double baselineCo2,
@@ -78,6 +79,7 @@ abstract class DailyLog with _$DailyLog {
   Map<String, dynamic> toSupabaseJson() {
     final map = toJson();
     map.remove('sync_status');
+    map.remove('energy_confirmed');
     map['transport_entries'] = transportEntries.map((e) => e.toJson()).toList();
     map['food_entries'] = foodEntries.map((e) => e.toJson()).toList();
     return map;

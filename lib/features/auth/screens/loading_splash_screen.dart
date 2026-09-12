@@ -7,12 +7,12 @@ class LoadingSplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: AppColors.background(context),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/images/icon.jpg', width: 140, height: 140),
+            Image.asset(AppColors.icon(context), width: 140, height: 140),
             const SizedBox(height: 24),
             ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(

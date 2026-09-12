@@ -15,9 +15,8 @@ final leaderboardProvider =
       final user = authState.user;
       if (user == null) return [];
 
-      final profile = await ref
-          .watch(userRepositoryProvider)
-          .getUserProfile(user.id);
+      final profileAsync = ref.watch(userProfileProvider(user.id));
+      final profile = profileAsync.value;
       final repo = ref.watch(leaderboardRepositoryProvider);
       return repo.getLeaderboard(type: type, city: profile?.city);
     });

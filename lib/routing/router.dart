@@ -59,9 +59,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If authenticated and profile is setup
-      if (isLoggingIn ||
-          state.uri.path == '/profile-setup' ||
-          state.uri.path == '/') {
+      if (isLoggingIn || state.uri.path == '/') {
         return '/dashboard';
       }
 

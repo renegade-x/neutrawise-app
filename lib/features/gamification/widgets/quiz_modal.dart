@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/domain/gamification/quiz_engine.dart';
 import 'package:neutrawise/data/repositories/quiz_repository.dart';
+import 'package:neutrawise/data/repositories/user_repository.dart';
 
 class QuizModal extends ConsumerStatefulWidget {
   final String userId;
@@ -100,9 +101,9 @@ class _QuizModalState extends ConsumerState<QuizModal> {
 
     return Container(
       height: mediaQuery.size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: AppColors.backgroundDark,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppColors.background(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
         left: 20,
@@ -128,7 +129,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[700],
+              color: AppColors.divider(context),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -139,14 +140,14 @@ class _QuizModalState extends ConsumerState<QuizModal> {
           children: [
             Text(
               widget.quiz.title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.textPrimary(context),
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close, color: Colors.grey),
+              icon: Icon(Icons.close, color: AppColors.textSecondary(context)),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],
@@ -160,7 +161,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: AppColors.surfaceDark,
+                  backgroundColor: AppColors.surface(context),
                   valueColor: const AlwaysStoppedAnimation<Color>(
                     AppColors.primaryGreen,
                   ),
@@ -171,8 +172,8 @@ class _QuizModalState extends ConsumerState<QuizModal> {
             const SizedBox(width: 12),
             Text(
               '${_currentIndex + 1}/$totalQuestions',
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -189,7 +190,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: AppColors.surface(context),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: AppColors.primaryGreen.withValues(alpha: 0.3),
@@ -197,8 +198,8 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                   ),
                   child: Text(
                     question.text,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       height: 1.3,
@@ -213,7 +214,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                   final isSelected = _selectedOptionIndex == index;
                   final isCorrect = index == question.correctIndex;
 
-                  Color optionColor = AppColors.surfaceDark;
+                  Color optionColor = AppColors.surface(context);
                   Color borderColor = Colors.transparent;
                   IconData? iconData;
 
@@ -252,7 +253,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                           border: Border.all(
                             color: borderColor != Colors.transparent
                                 ? borderColor
-                                : Colors.grey.withValues(alpha: 0.2),
+                                : AppColors.border(context),
                             width: borderColor != Colors.transparent ? 2 : 1,
                           ),
                         ),
@@ -263,7 +264,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                               style: TextStyle(
                                 color: isSelected
                                     ? AppColors.primaryGreen
-                                    : AppColors.textSecondaryDark,
+                                    : AppColors.textSecondary(context),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -272,8 +273,8 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                             Expanded(
                               child: Text(
                                 optionText,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary(context),
                                   fontSize: 15,
                                 ),
                               ),
@@ -316,8 +317,8 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                         Expanded(
                           child: Text(
                             question.explanation,
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
                               fontSize: 13,
                               height: 1.3,
                             ),
@@ -360,11 +361,15 @@ class _QuizModalState extends ConsumerState<QuizModal> {
   }
 
   Widget _buildResultsView() {
+    final userProfile = ref.watch(userProfileProvider(widget.userId)).value;
+    final userLevel = userProfile?.level ?? 1;
+
     final score = _calculateScore();
     final totalQuestions = widget.quiz.questions.length;
     final xpBreakdown = QuizEngine.calculateQuizXp(
       score: score,
       totalQuestions: totalQuestions,
+      level: userLevel,
     );
     final totalXp = xpBreakdown['totalXp'] as int;
     final isPerfect = xpBreakdown['isPerfect'] as bool;
@@ -380,8 +385,8 @@ class _QuizModalState extends ConsumerState<QuizModal> {
         const SizedBox(height: 16),
         Text(
           isPerfect ? 'Perfect Quiz Score! 🌟' : 'Quiz Completed! 🧠',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.textPrimary(context),
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
@@ -389,8 +394,8 @@ class _QuizModalState extends ConsumerState<QuizModal> {
         const SizedBox(height: 8),
         Text(
           'You scored $score out of $totalQuestions correct',
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
+          style: TextStyle(
+            color: AppColors.textSecondary(context),
             fontSize: 15,
           ),
         ),
@@ -400,7 +405,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
+            color: AppColors.surface(context),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: AppColors.primaryGreen.withValues(alpha: 0.3),
@@ -425,14 +430,14 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                   isBonus: true,
                 ),
               ],
-              const Divider(color: Colors.grey, height: 24),
+              Divider(color: AppColors.divider(context), height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Total XP Earned',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary(context),
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -481,7 +486,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
         Text(
           label,
           style: TextStyle(
-            color: isBonus ? Colors.amber : Colors.grey[300],
+            color: isBonus ? Colors.amber : AppColors.textSecondary(context),
             fontSize: 14,
             fontWeight: isBonus ? FontWeight.bold : FontWeight.normal,
           ),

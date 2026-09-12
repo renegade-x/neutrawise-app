@@ -31,7 +31,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -40,8 +40,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: AppColors.textPrimary(context),
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
@@ -51,8 +51,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         ),
         content: Text(
           message,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
+          style: TextStyle(
+            color: AppColors.textSecondary(context),
             fontSize: 14,
           ),
         ),
@@ -137,11 +137,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
-        title: const Text('Sign Up'),
+        title: Text(
+          'Sign Up',
+          style: TextStyle(color: AppColors.textPrimary(context)),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.textPrimary(context)),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -152,7 +156,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             children: [
               Center(
                 child: Image.asset(
-                  'assets/images/logo.png',
+                  AppColors.logo(context),
                   height: 110,
                   fit: BoxFit.contain,
                 ),
@@ -160,16 +164,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 32),
               TextField(
                 controller: _nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppColors.textPrimary(context)),
+                decoration: InputDecoration(
                   labelText: 'Full Name',
                   prefixIcon: Icon(
                     Icons.person_outline,
-                    color: AppColors.textSecondaryDark,
+                    color: AppColors.textSecondary(context),
                   ),
-                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
+                  labelStyle: TextStyle(
+                    color: AppColors.textSecondary(context),
+                  ),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primaryGreen),
                   ),
                 ),
@@ -178,18 +184,25 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _cityController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppColors.textPrimary(context)),
+                decoration: InputDecoration(
                   labelText: 'City',
                   hintText: 'e.g. London, New York, Tokyo',
-                  hintStyle: TextStyle(color: Colors.white30, fontSize: 13),
+                  hintStyle: TextStyle(
+                    color: AppColors.textSecondary(
+                      context,
+                    ).withValues(alpha: 0.5),
+                    fontSize: 13,
+                  ),
                   prefixIcon: Icon(
                     Icons.location_city_outlined,
-                    color: AppColors.textSecondaryDark,
+                    color: AppColors.textSecondary(context),
                   ),
-                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
+                  labelStyle: TextStyle(
+                    color: AppColors.textSecondary(context),
+                  ),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primaryGreen),
                   ),
                 ),
@@ -198,16 +211,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _emailController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppColors.textPrimary(context)),
+                decoration: InputDecoration(
                   labelText: 'Email',
                   prefixIcon: Icon(
                     Icons.email_outlined,
-                    color: AppColors.textSecondaryDark,
+                    color: AppColors.textSecondary(context),
                   ),
-                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
+                  labelStyle: TextStyle(
+                    color: AppColors.textSecondary(context),
+                  ),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primaryGreen),
                   ),
                 ),
@@ -216,16 +231,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppColors.textPrimary(context)),
+                decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: Icon(
                     Icons.lock_outline,
-                    color: AppColors.textSecondaryDark,
+                    color: AppColors.textSecondary(context),
                   ),
-                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
+                  labelStyle: TextStyle(
+                    color: AppColors.textSecondary(context),
+                  ),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primaryGreen),
                   ),
                 ),

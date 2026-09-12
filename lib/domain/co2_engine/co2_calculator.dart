@@ -2,6 +2,7 @@ import 'emission_factors.dart';
 import '../models/sign_up_profile_input.dart';
 import '../models/user_profile.dart';
 import '../models/daily_log.dart';
+import '../gamification/gamification_engine.dart';
 
 class CO2Calculator {
   static Map<String, dynamic> processSignUpProfile(SignUpProfileInput input) {
@@ -161,36 +162,34 @@ class CO2Calculator {
     final saved = baselineCo2 - totalDailyCo2;
     final percent = baselineCo2 > 0 ? (saved / baselineCo2) * 100 : 0.0;
 
-    // 5. XP Calculation
-    int baseXP = 0;
-    if (energyConfirmed &&
-        transportEntries.isNotEmpty &&
-        foodEntries.isNotEmpty) {
-      baseXP = 50;
-    } else if (transportEntries.isNotEmpty ||
-        foodEntries.isNotEmpty ||
-        energyConfirmed) {
-      baseXP = 20;
-    }
+    // 5. XP Calculation (v3.0 GamificationEngine)
+    final tempLog = DailyLog(
+      userId: profile.id,
+      date: date,
+      transportEntries: processedTransport,
+      transportCo2: totalTransportCo2,
+      foodEntries: processedFood,
+      foodCo2: totalFoodCo2,
+      energyDeviations: energyDeviations,
+      energyCo2: totalEnergyCo2,
+      energyConfirmed: energyConfirmed,
+      totalDailyCo2: totalDailyCo2,
+      baselineCo2: baselineCo2,
+      co2SavedVsBaseline: saved,
+      percentVsBaseline: percent,
+      xpEarned: 0,
+      emissionFactorVersion: '1.0',
+      syncStatus: 'pending',
+    );
 
-    double streakMultiplier = 1.0;
-    if (streakDays >= 30) {
-      streakMultiplier = 1.5;
-    } else if (streakDays >= 7) {
-      streakMultiplier = 1.25;
-    }
+    final xpResult = GamificationEngine.awardDailyXP(
+      dailyResult: tempLog,
+      fullLogStreakDays: profile.fullLogStreakDays,
+      level: profile.level,
+      alreadyAwardedForDate: 0,
+    );
 
-    int xpEarned = (baseXP * streakMultiplier).round();
-
-    if (xpEarned > 0) {
-      if (percent >= 30) {
-        xpEarned += 25;
-      } else if (percent >= 15) {
-        xpEarned += 15;
-      } else if (percent >= 5) {
-        xpEarned += 8;
-      }
-    }
+    final xpEarned = xpResult['newTotal'] as int;
 
     return DailyLog(
       userId: profile.id,
@@ -201,6 +200,7 @@ class CO2Calculator {
       foodCo2: totalFoodCo2,
       energyDeviations: energyDeviations,
       energyCo2: totalEnergyCo2,
+      energyConfirmed: energyConfirmed,
       totalDailyCo2: totalDailyCo2,
       baselineCo2: baselineCo2,
       co2SavedVsBaseline: saved,

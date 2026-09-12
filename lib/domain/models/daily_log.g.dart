@@ -64,6 +64,7 @@ _DailyLog _$DailyLogFromJson(Map<String, dynamic> json) => _DailyLog(
           .toList() ??
       const [],
   energyCo2: (json['energy_co2'] as num?)?.toDouble() ?? 0.0,
+  energyConfirmed: json['energy_confirmed'] as bool? ?? false,
   totalDailyCo2: (json['total_daily_co2'] as num?)?.toDouble() ?? 0.0,
   baselineCo2: (json['baseline_co2'] as num?)?.toDouble() ?? 0.0,
   co2SavedVsBaseline:
@@ -82,6 +83,7 @@ Map<String, dynamic> _$DailyLogToJson(_DailyLog instance) => <String, dynamic>{
   'food_co2': instance.foodCo2,
   'energy_deviations': instance.energyDeviations,
   'energy_co2': instance.energyCo2,
+  'energy_confirmed': instance.energyConfirmed,
   'total_daily_co2': instance.totalDailyCo2,
   'baseline_co2': instance.baselineCo2,
   'co2_saved_vs_baseline': instance.co2SavedVsBaseline,

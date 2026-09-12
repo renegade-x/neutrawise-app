@@ -27,101 +27,167 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
     final logsAsync = ref.watch(recentLogsProvider(user.id));
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(color: AppColors.backgroundDark),
-        child: SafeArea(
-          child: profileAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, st) => Center(child: Text('Error: $e')),
-            data: (profile) {
-              if (profile == null) {
-                return const Center(child: Text('Profile not found'));
-              }
+      backgroundColor: AppColors.background(context),
+      body: SafeArea(
+        child: profileAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, st) => Center(child: Text('Error: $e')),
+          data: (profile) {
+            if (profile == null) {
+              return const Center(child: Text('Profile not found'));
+            }
 
-              return logsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, st) => Center(child: Text('Error: $e')),
-                data: (logs) {
-                  // Calculate monthly insights (up to 30 days)
-                  final double baseline = profile.totalDailyBaselineCo2 ?? 15.0;
-                  final recentLogs = logs.take(30).toList();
+            return logsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, st) => Center(child: Text('Error: $e')),
+              data: (logs) {
+                // Calculate monthly insights (up to 30 days)
+                final double baseline = profile.totalDailyBaselineCo2 ?? 15.0;
+                final recentLogs = logs.take(30).toList();
 
-                  double totalSaved = 0.0;
-                  double totalEmitted = 0.0;
-                  double totalTransport = 0.0;
-                  double totalFood = 0.0;
-                  double totalEnergy = 0.0;
+                double totalSaved = 0.0;
+                double totalEmitted = 0.0;
+                double totalTransport = 0.0;
+                double totalFood = 0.0;
+                double totalEnergy = 0.0;
 
-                  for (var log in recentLogs) {
-                    totalSaved += log.co2SavedVsBaseline;
-                    totalEmitted += log.totalDailyCo2;
-                    totalTransport += log.transportCo2;
-                    totalFood += log.foodCo2;
-                    totalEnergy += log.energyCo2;
-                  }
+                for (var log in recentLogs) {
+                  totalSaved += log.co2SavedVsBaseline;
+                  totalEmitted += log.totalDailyCo2;
+                  totalTransport += log.transportCo2;
+                  totalFood += log.foodCo2;
+                  totalEnergy += log.energyCo2;
+                }
 
-                  final double avgSaved = recentLogs.isNotEmpty
-                      ? totalSaved / recentLogs.length
-                      : 0.0;
-                  final double avgEmitted = recentLogs.isNotEmpty
-                      ? totalEmitted / recentLogs.length
-                      : 0.0;
-                  final double improvementPercent = baseline > 0
-                      ? (avgSaved / baseline) * 100
-                      : 0.0;
+                final double avgSaved = recentLogs.isNotEmpty
+                    ? totalSaved / recentLogs.length
+                    : 0.0;
+                final double avgEmitted = recentLogs.isNotEmpty
+                    ? totalEmitted / recentLogs.length
+                    : 0.0;
+                final double improvementPercent = baseline > 0
+                    ? (avgSaved / baseline) * 100
+                    : 0.0;
 
-                  // CO2 Equivalences (only shown if positive saved)
-                  final double treesAbsorbed = totalSaved > 0
-                      ? totalSaved / 0.0603
-                      : 0.0;
-                  final double carKm = totalSaved > 0 ? totalSaved / 0.18 : 0.0;
-                  final double phoneCharges = totalSaved > 0
-                      ? totalSaved / 0.008
-                      : 0.0;
+                // CO2 Equivalences (only shown if positive saved)
+                final double treesAbsorbed = totalSaved > 0
+                    ? totalSaved / 0.0603
+                    : 0.0;
+                final double carKm = totalSaved > 0 ? totalSaved / 0.18 : 0.0;
+                final double phoneCharges = totalSaved > 0
+                    ? totalSaved / 0.008
+                    : 0.0;
 
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Insights',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Insights',
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary(context),
+                                ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceDark,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: AppColors.primaryGreen.withValues(
-                                    alpha: 0.3,
-                                  ),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface(context),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.primaryGreen.withValues(
+                                  alpha: 0.3,
                                 ),
                               ),
-                              child: const Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_month,
-                                    color: AppColors.primaryGreen,
-                                    size: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.calendar_month,
+                                  color: AppColors.primaryGreen,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Monthly View',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
                                   ),
-                                  SizedBox(width: 6),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Performance Callout Card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: improvementPercent >= 0
+                                ? [
+                                    AppColors.primaryGreen.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    AppColors.primaryGreen.withValues(
+                                      alpha: 0.05,
+                                    ),
+                                  ]
+                                : [
+                                    AppColors.warning.withValues(alpha: 0.15),
+                                    AppColors.warning.withValues(alpha: 0.05),
+                                  ],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: improvementPercent >= 0
+                                ? AppColors.primaryGreen.withValues(alpha: 0.3)
+                                : AppColors.warning.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              improvementPercent >= 0
+                                  ? Icons.trending_up
+                                  : Icons.trending_down,
+                              color: improvementPercent >= 0
+                                  ? AppColors.primaryGreen
+                                  : AppColors.warning,
+                              size: 36,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    'Monthly View',
+                                    improvementPercent >= 0
+                                        ? 'You improved by ${improvementPercent.toStringAsFixed(1)}%'
+                                        : 'Emissions higher by ${improvementPercent.abs().toStringAsFixed(1)}%',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: AppColors.textPrimary(context),
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Average daily emissions are ${avgEmitted.toStringAsFixed(1)} kg CO₂e compared to baseline ${baseline.toStringAsFixed(1)} kg.',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary(context),
                                       fontSize: 13,
                                     ),
                                   ),
@@ -130,250 +196,179 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                      ),
+                      const SizedBox(height: 24),
 
-                        // Performance Callout Card
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: improvementPercent >= 0
-                                  ? [
-                                      AppColors.primaryGreen.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                      AppColors.primaryGreen.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                    ]
-                                  : [
-                                      AppColors.warning.withValues(alpha: 0.15),
-                                      AppColors.warning.withValues(alpha: 0.05),
-                                    ],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: improvementPercent >= 0
-                                  ? AppColors.primaryGreen.withValues(
-                                      alpha: 0.3,
-                                    )
-                                  : AppColors.warning.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                improvementPercent >= 0
-                                    ? Icons.trending_up
-                                    : Icons.trending_down,
-                                color: improvementPercent >= 0
-                                    ? AppColors.primaryGreen
-                                    : AppColors.warning,
-                                size: 36,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      improvementPercent >= 0
-                                          ? 'You improved by ${improvementPercent.toStringAsFixed(1)}%'
-                                          : 'Emissions higher by ${improvementPercent.abs().toStringAsFixed(1)}%',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Average daily emissions are ${avgEmitted.toStringAsFixed(1)} kg CO₂e compared to baseline ${baseline.toStringAsFixed(1)} kg.',
-                                      style: const TextStyle(
-                                        color: AppColors.textSecondaryDark,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                      // Monthly Stacked Trend Chart
+                      EmissionsBreakdownChart(
+                        logs: recentLogs,
+                        baseline: baseline,
+                        title: 'Monthly Emissions Breakdown',
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Monthly Target progress
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface(context),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.border(context)),
                         ),
-                        const SizedBox(height: 24),
-
-                        // Monthly Stacked Trend Chart
-                        EmissionsBreakdownChart(
-                          logs: recentLogs,
-                          baseline: baseline,
-                          title: 'Monthly Emissions Breakdown',
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Monthly Target progress
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceDark,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.05),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Monthly Target',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                      'Target: 20% reduction',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondaryDark,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Achieved: ${max(0.0, improvementPercent).toStringAsFixed(1)}%',
-                                      style: const TextStyle(
-                                        color: AppColors.primaryGreen,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                width: 70,
-                                height: 70,
-                                child: CustomPaint(
-                                  painter: TargetProgressPainter(
-                                    progress: (improvementPercent / 20.0).clamp(
-                                      0.0,
-                                      1.0,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Monthly Target',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary(context),
                                     ),
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      '${min(100, (improvementPercent * 5).round()).clamp(0, 100)}%',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Target: 20% reduction',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary(context),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Achieved: ${max(0.0, improvementPercent).toStringAsFixed(1)}%',
+                                    style: const TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              width: 70,
+                              height: 70,
+                              child: CustomPaint(
+                                painter: TargetProgressPainter(
+                                  progress: (improvementPercent / 20.0).clamp(
+                                    0.0,
+                                    1.0,
+                                  ),
+                                  trackColor: AppColors.border(context),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${min(100, (improvementPercent * 5).round()).clamp(0, 100)}%',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary(context),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // CO2 Equivalences
-                        if (totalSaved > 0) ...[
-                          const Text(
-                            'Your Positive Impact',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildEquivalenceCard(
-                                  Icons.eco,
-                                  'Tree Days',
-                                  treesAbsorbed.toStringAsFixed(1),
-                                  'Absorbed',
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildEquivalenceCard(
-                                  Icons.directions_car,
-                                  'Car km',
-                                  carKm.toStringAsFixed(1),
-                                  'Avoided',
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildEquivalenceCard(
-                                  Icons.bolt,
-                                  'Phone Charges',
-                                  phoneCharges.toStringAsFixed(0),
-                                  'Saved',
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                        ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-                        // Emissions table by Category
-                        const Text(
-                          'Category Summary',
+                      // CO2 Equivalences
+                      if (totalSaved > 0) ...[
+                        Text(
+                          'Your Positive Impact',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceDark,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Table(
-                            columnWidths: const {
-                              0: FlexColumnWidth(2),
-                              1: FlexColumnWidth(1),
-                              2: FlexColumnWidth(1),
-                            },
-                            children: [
-                              _buildTableHeader(),
-                              _buildTableRow(
-                                'Transport',
-                                totalTransport,
-                                AppColors.primaryBlue,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildEquivalenceCard(
+                                Icons.eco,
+                                'Tree Days',
+                                treesAbsorbed.toStringAsFixed(1),
+                                'Absorbed',
                               ),
-                              _buildTableRow(
-                                'Food',
-                                totalFood,
-                                AppColors.primaryGreen,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildEquivalenceCard(
+                                Icons.directions_car,
+                                'Car km',
+                                carKm.toStringAsFixed(1),
+                                'Avoided',
                               ),
-                              _buildTableRow(
-                                'Energy',
-                                totalEnergy,
-                                AppColors.warning,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildEquivalenceCard(
+                                Icons.bolt,
+                                'Phone Charges',
+                                phoneCharges.toStringAsFixed(0),
+                                'Saved',
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 24),
                       ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+
+                      // Emissions table by Category
+                      Text(
+                        'Category Summary',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary(context),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface(context),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Table(
+                          columnWidths: const {
+                            0: FlexColumnWidth(2),
+                            1: FlexColumnWidth(1),
+                            2: FlexColumnWidth(1),
+                          },
+                          children: [
+                            _buildTableHeader(),
+                            _buildTableRow(
+                              'Transport',
+                              totalTransport,
+                              AppColors.primaryBlue,
+                            ),
+                            _buildTableRow(
+                              'Food',
+                              totalFood,
+                              AppColors.primaryGreen,
+                            ),
+                            _buildTableRow(
+                              'Energy',
+                              totalEnergy,
+                              AppColors.warning,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ),
     );
@@ -388,9 +383,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         children: [
@@ -398,26 +393,26 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: AppColors.textPrimary(context),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: AppColors.textSecondaryDark,
+              color: AppColors.textSecondary(context),
             ),
           ),
           Text(
             unit,
             style: TextStyle(
               fontSize: 10,
-              color: AppColors.textSecondaryDark.withValues(alpha: 0.7),
+              color: AppColors.textSecondary(context).withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -426,31 +421,40 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
   }
 
   TableRow _buildTableHeader() {
-    return const TableRow(
+    return TableRow(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white10)),
+        border: Border(bottom: BorderSide(color: AppColors.divider(context))),
       ),
       children: [
         Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
           child: Text(
             'Category',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
+            ),
           ),
         ),
         Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
           child: Text(
             'CO₂e (kg)',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
+            ),
             textAlign: TextAlign.right,
           ),
         ),
         Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
           child: Text(
             '% Share',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
+            ),
             textAlign: TextAlign.right,
           ),
         ),
@@ -460,8 +464,8 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
 
   TableRow _buildTableRow(String category, double co2, Color color) {
     return TableRow(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white10)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.divider(context))),
       ),
       children: [
         Padding(
@@ -474,7 +478,10 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
-              Text(category, style: const TextStyle(color: Colors.white)),
+              Text(
+                category,
+                style: TextStyle(color: AppColors.textPrimary(context)),
+              ),
             ],
           ),
         ),
@@ -482,7 +489,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Text(
             co2.toStringAsFixed(1),
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: AppColors.textPrimary(context)),
             textAlign: TextAlign.right,
           ),
         ),
@@ -490,7 +497,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Text(
             co2 > 0 ? '${(co2 / (co2 + 1) * 100).toStringAsFixed(0)}%' : '0%',
-            style: const TextStyle(color: AppColors.textSecondaryDark),
+            style: TextStyle(color: AppColors.textSecondary(context)),
             textAlign: TextAlign.right,
           ),
         ),
@@ -501,8 +508,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
 
 class TargetProgressPainter extends CustomPainter {
   final double progress;
+  final Color trackColor;
 
-  TargetProgressPainter({required this.progress});
+  TargetProgressPainter({required this.progress, required this.trackColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -510,7 +518,7 @@ class TargetProgressPainter extends CustomPainter {
     final radius = size.width / 2;
 
     final paintBg = Paint()
-      ..color = Colors.white10
+      ..color = trackColor
       ..strokeWidth = 6
       ..style = PaintingStyle.stroke;
 
@@ -531,5 +539,8 @@ class TargetProgressPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant TargetProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.trackColor != trackColor;
+  }
 }

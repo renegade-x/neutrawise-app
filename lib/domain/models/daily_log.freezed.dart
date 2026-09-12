@@ -568,7 +568,7 @@ as String?,
 /// @nodoc
 mixin _$DailyLog {
 
-@JsonKey(name: 'user_id') String get userId; String get date;@JsonKey(name: 'transport_entries') List<TransportEntry> get transportEntries;@JsonKey(name: 'transport_co2') double get transportCo2;@JsonKey(name: 'food_entries') List<FoodEntry> get foodEntries;@JsonKey(name: 'food_co2') double get foodCo2;@JsonKey(name: 'energy_deviations') List<String> get energyDeviations;@JsonKey(name: 'energy_co2') double get energyCo2;@JsonKey(name: 'total_daily_co2') double get totalDailyCo2;@JsonKey(name: 'baseline_co2') double get baselineCo2;@JsonKey(name: 'co2_saved_vs_baseline') double get co2SavedVsBaseline;@JsonKey(name: 'percent_vs_baseline') double get percentVsBaseline;@JsonKey(name: 'xp_earned') int get xpEarned;@JsonKey(name: 'emission_factor_version') String get emissionFactorVersion;@JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) String get syncStatus;
+@JsonKey(name: 'user_id') String get userId; String get date;@JsonKey(name: 'transport_entries') List<TransportEntry> get transportEntries;@JsonKey(name: 'transport_co2') double get transportCo2;@JsonKey(name: 'food_entries') List<FoodEntry> get foodEntries;@JsonKey(name: 'food_co2') double get foodCo2;@JsonKey(name: 'energy_deviations') List<String> get energyDeviations;@JsonKey(name: 'energy_co2') double get energyCo2;@JsonKey(name: 'energy_confirmed') bool get energyConfirmed;@JsonKey(name: 'total_daily_co2') double get totalDailyCo2;@JsonKey(name: 'baseline_co2') double get baselineCo2;@JsonKey(name: 'co2_saved_vs_baseline') double get co2SavedVsBaseline;@JsonKey(name: 'percent_vs_baseline') double get percentVsBaseline;@JsonKey(name: 'xp_earned') int get xpEarned;@JsonKey(name: 'emission_factor_version') String get emissionFactorVersion;@JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) String get syncStatus;
 /// Create a copy of DailyLog
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -581,16 +581,16 @@ $DailyLogCopyWith<DailyLog> get copyWith => _$DailyLogCopyWithImpl<DailyLog>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DailyLog&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other.transportEntries, transportEntries)&&(identical(other.transportCo2, transportCo2) || other.transportCo2 == transportCo2)&&const DeepCollectionEquality().equals(other.foodEntries, foodEntries)&&(identical(other.foodCo2, foodCo2) || other.foodCo2 == foodCo2)&&const DeepCollectionEquality().equals(other.energyDeviations, energyDeviations)&&(identical(other.energyCo2, energyCo2) || other.energyCo2 == energyCo2)&&(identical(other.totalDailyCo2, totalDailyCo2) || other.totalDailyCo2 == totalDailyCo2)&&(identical(other.baselineCo2, baselineCo2) || other.baselineCo2 == baselineCo2)&&(identical(other.co2SavedVsBaseline, co2SavedVsBaseline) || other.co2SavedVsBaseline == co2SavedVsBaseline)&&(identical(other.percentVsBaseline, percentVsBaseline) || other.percentVsBaseline == percentVsBaseline)&&(identical(other.xpEarned, xpEarned) || other.xpEarned == xpEarned)&&(identical(other.emissionFactorVersion, emissionFactorVersion) || other.emissionFactorVersion == emissionFactorVersion)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DailyLog&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other.transportEntries, transportEntries)&&(identical(other.transportCo2, transportCo2) || other.transportCo2 == transportCo2)&&const DeepCollectionEquality().equals(other.foodEntries, foodEntries)&&(identical(other.foodCo2, foodCo2) || other.foodCo2 == foodCo2)&&const DeepCollectionEquality().equals(other.energyDeviations, energyDeviations)&&(identical(other.energyCo2, energyCo2) || other.energyCo2 == energyCo2)&&(identical(other.energyConfirmed, energyConfirmed) || other.energyConfirmed == energyConfirmed)&&(identical(other.totalDailyCo2, totalDailyCo2) || other.totalDailyCo2 == totalDailyCo2)&&(identical(other.baselineCo2, baselineCo2) || other.baselineCo2 == baselineCo2)&&(identical(other.co2SavedVsBaseline, co2SavedVsBaseline) || other.co2SavedVsBaseline == co2SavedVsBaseline)&&(identical(other.percentVsBaseline, percentVsBaseline) || other.percentVsBaseline == percentVsBaseline)&&(identical(other.xpEarned, xpEarned) || other.xpEarned == xpEarned)&&(identical(other.emissionFactorVersion, emissionFactorVersion) || other.emissionFactorVersion == emissionFactorVersion)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,date,const DeepCollectionEquality().hash(transportEntries),transportCo2,const DeepCollectionEquality().hash(foodEntries),foodCo2,const DeepCollectionEquality().hash(energyDeviations),energyCo2,totalDailyCo2,baselineCo2,co2SavedVsBaseline,percentVsBaseline,xpEarned,emissionFactorVersion,syncStatus);
+int get hashCode => Object.hash(runtimeType,userId,date,const DeepCollectionEquality().hash(transportEntries),transportCo2,const DeepCollectionEquality().hash(foodEntries),foodCo2,const DeepCollectionEquality().hash(energyDeviations),energyCo2,energyConfirmed,totalDailyCo2,baselineCo2,co2SavedVsBaseline,percentVsBaseline,xpEarned,emissionFactorVersion,syncStatus);
 
 @override
 String toString() {
-  return 'DailyLog(userId: $userId, date: $date, transportEntries: $transportEntries, transportCo2: $transportCo2, foodEntries: $foodEntries, foodCo2: $foodCo2, energyDeviations: $energyDeviations, energyCo2: $energyCo2, totalDailyCo2: $totalDailyCo2, baselineCo2: $baselineCo2, co2SavedVsBaseline: $co2SavedVsBaseline, percentVsBaseline: $percentVsBaseline, xpEarned: $xpEarned, emissionFactorVersion: $emissionFactorVersion, syncStatus: $syncStatus)';
+  return 'DailyLog(userId: $userId, date: $date, transportEntries: $transportEntries, transportCo2: $transportCo2, foodEntries: $foodEntries, foodCo2: $foodCo2, energyDeviations: $energyDeviations, energyCo2: $energyCo2, energyConfirmed: $energyConfirmed, totalDailyCo2: $totalDailyCo2, baselineCo2: $baselineCo2, co2SavedVsBaseline: $co2SavedVsBaseline, percentVsBaseline: $percentVsBaseline, xpEarned: $xpEarned, emissionFactorVersion: $emissionFactorVersion, syncStatus: $syncStatus)';
 }
 
 
@@ -601,7 +601,7 @@ abstract mixin class $DailyLogCopyWith<$Res>  {
   factory $DailyLogCopyWith(DailyLog value, $Res Function(DailyLog) _then) = _$DailyLogCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId, String date,@JsonKey(name: 'transport_entries') List<TransportEntry> transportEntries,@JsonKey(name: 'transport_co2') double transportCo2,@JsonKey(name: 'food_entries') List<FoodEntry> foodEntries,@JsonKey(name: 'food_co2') double foodCo2,@JsonKey(name: 'energy_deviations') List<String> energyDeviations,@JsonKey(name: 'energy_co2') double energyCo2,@JsonKey(name: 'total_daily_co2') double totalDailyCo2,@JsonKey(name: 'baseline_co2') double baselineCo2,@JsonKey(name: 'co2_saved_vs_baseline') double co2SavedVsBaseline,@JsonKey(name: 'percent_vs_baseline') double percentVsBaseline,@JsonKey(name: 'xp_earned') int xpEarned,@JsonKey(name: 'emission_factor_version') String emissionFactorVersion,@JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) String syncStatus
+@JsonKey(name: 'user_id') String userId, String date,@JsonKey(name: 'transport_entries') List<TransportEntry> transportEntries,@JsonKey(name: 'transport_co2') double transportCo2,@JsonKey(name: 'food_entries') List<FoodEntry> foodEntries,@JsonKey(name: 'food_co2') double foodCo2,@JsonKey(name: 'energy_deviations') List<String> energyDeviations,@JsonKey(name: 'energy_co2') double energyCo2,@JsonKey(name: 'energy_confirmed') bool energyConfirmed,@JsonKey(name: 'total_daily_co2') double totalDailyCo2,@JsonKey(name: 'baseline_co2') double baselineCo2,@JsonKey(name: 'co2_saved_vs_baseline') double co2SavedVsBaseline,@JsonKey(name: 'percent_vs_baseline') double percentVsBaseline,@JsonKey(name: 'xp_earned') int xpEarned,@JsonKey(name: 'emission_factor_version') String emissionFactorVersion,@JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) String syncStatus
 });
 
 
@@ -618,7 +618,7 @@ class _$DailyLogCopyWithImpl<$Res>
 
 /// Create a copy of DailyLog
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? date = null,Object? transportEntries = null,Object? transportCo2 = null,Object? foodEntries = null,Object? foodCo2 = null,Object? energyDeviations = null,Object? energyCo2 = null,Object? totalDailyCo2 = null,Object? baselineCo2 = null,Object? co2SavedVsBaseline = null,Object? percentVsBaseline = null,Object? xpEarned = null,Object? emissionFactorVersion = null,Object? syncStatus = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? date = null,Object? transportEntries = null,Object? transportCo2 = null,Object? foodEntries = null,Object? foodCo2 = null,Object? energyDeviations = null,Object? energyCo2 = null,Object? energyConfirmed = null,Object? totalDailyCo2 = null,Object? baselineCo2 = null,Object? co2SavedVsBaseline = null,Object? percentVsBaseline = null,Object? xpEarned = null,Object? emissionFactorVersion = null,Object? syncStatus = null,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
@@ -628,7 +628,8 @@ as double,foodEntries: null == foodEntries ? _self.foodEntries : foodEntries // 
 as List<FoodEntry>,foodCo2: null == foodCo2 ? _self.foodCo2 : foodCo2 // ignore: cast_nullable_to_non_nullable
 as double,energyDeviations: null == energyDeviations ? _self.energyDeviations : energyDeviations // ignore: cast_nullable_to_non_nullable
 as List<String>,energyCo2: null == energyCo2 ? _self.energyCo2 : energyCo2 // ignore: cast_nullable_to_non_nullable
-as double,totalDailyCo2: null == totalDailyCo2 ? _self.totalDailyCo2 : totalDailyCo2 // ignore: cast_nullable_to_non_nullable
+as double,energyConfirmed: null == energyConfirmed ? _self.energyConfirmed : energyConfirmed // ignore: cast_nullable_to_non_nullable
+as bool,totalDailyCo2: null == totalDailyCo2 ? _self.totalDailyCo2 : totalDailyCo2 // ignore: cast_nullable_to_non_nullable
 as double,baselineCo2: null == baselineCo2 ? _self.baselineCo2 : baselineCo2 // ignore: cast_nullable_to_non_nullable
 as double,co2SavedVsBaseline: null == co2SavedVsBaseline ? _self.co2SavedVsBaseline : co2SavedVsBaseline // ignore: cast_nullable_to_non_nullable
 as double,percentVsBaseline: null == percentVsBaseline ? _self.percentVsBaseline : percentVsBaseline // ignore: cast_nullable_to_non_nullable
@@ -720,10 +721,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String date, @JsonKey(name: 'transport_entries')  List<TransportEntry> transportEntries, @JsonKey(name: 'transport_co2')  double transportCo2, @JsonKey(name: 'food_entries')  List<FoodEntry> foodEntries, @JsonKey(name: 'food_co2')  double foodCo2, @JsonKey(name: 'energy_deviations')  List<String> energyDeviations, @JsonKey(name: 'energy_co2')  double energyCo2, @JsonKey(name: 'total_daily_co2')  double totalDailyCo2, @JsonKey(name: 'baseline_co2')  double baselineCo2, @JsonKey(name: 'co2_saved_vs_baseline')  double co2SavedVsBaseline, @JsonKey(name: 'percent_vs_baseline')  double percentVsBaseline, @JsonKey(name: 'xp_earned')  int xpEarned, @JsonKey(name: 'emission_factor_version')  String emissionFactorVersion, @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false)  String syncStatus)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String date, @JsonKey(name: 'transport_entries')  List<TransportEntry> transportEntries, @JsonKey(name: 'transport_co2')  double transportCo2, @JsonKey(name: 'food_entries')  List<FoodEntry> foodEntries, @JsonKey(name: 'food_co2')  double foodCo2, @JsonKey(name: 'energy_deviations')  List<String> energyDeviations, @JsonKey(name: 'energy_co2')  double energyCo2, @JsonKey(name: 'energy_confirmed')  bool energyConfirmed, @JsonKey(name: 'total_daily_co2')  double totalDailyCo2, @JsonKey(name: 'baseline_co2')  double baselineCo2, @JsonKey(name: 'co2_saved_vs_baseline')  double co2SavedVsBaseline, @JsonKey(name: 'percent_vs_baseline')  double percentVsBaseline, @JsonKey(name: 'xp_earned')  int xpEarned, @JsonKey(name: 'emission_factor_version')  String emissionFactorVersion, @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false)  String syncStatus)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DailyLog() when $default != null:
-return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo2,_that.foodEntries,_that.foodCo2,_that.energyDeviations,_that.energyCo2,_that.totalDailyCo2,_that.baselineCo2,_that.co2SavedVsBaseline,_that.percentVsBaseline,_that.xpEarned,_that.emissionFactorVersion,_that.syncStatus);case _:
+return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo2,_that.foodEntries,_that.foodCo2,_that.energyDeviations,_that.energyCo2,_that.energyConfirmed,_that.totalDailyCo2,_that.baselineCo2,_that.co2SavedVsBaseline,_that.percentVsBaseline,_that.xpEarned,_that.emissionFactorVersion,_that.syncStatus);case _:
   return orElse();
 
 }
@@ -741,10 +742,10 @@ return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String date, @JsonKey(name: 'transport_entries')  List<TransportEntry> transportEntries, @JsonKey(name: 'transport_co2')  double transportCo2, @JsonKey(name: 'food_entries')  List<FoodEntry> foodEntries, @JsonKey(name: 'food_co2')  double foodCo2, @JsonKey(name: 'energy_deviations')  List<String> energyDeviations, @JsonKey(name: 'energy_co2')  double energyCo2, @JsonKey(name: 'total_daily_co2')  double totalDailyCo2, @JsonKey(name: 'baseline_co2')  double baselineCo2, @JsonKey(name: 'co2_saved_vs_baseline')  double co2SavedVsBaseline, @JsonKey(name: 'percent_vs_baseline')  double percentVsBaseline, @JsonKey(name: 'xp_earned')  int xpEarned, @JsonKey(name: 'emission_factor_version')  String emissionFactorVersion, @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false)  String syncStatus)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String date, @JsonKey(name: 'transport_entries')  List<TransportEntry> transportEntries, @JsonKey(name: 'transport_co2')  double transportCo2, @JsonKey(name: 'food_entries')  List<FoodEntry> foodEntries, @JsonKey(name: 'food_co2')  double foodCo2, @JsonKey(name: 'energy_deviations')  List<String> energyDeviations, @JsonKey(name: 'energy_co2')  double energyCo2, @JsonKey(name: 'energy_confirmed')  bool energyConfirmed, @JsonKey(name: 'total_daily_co2')  double totalDailyCo2, @JsonKey(name: 'baseline_co2')  double baselineCo2, @JsonKey(name: 'co2_saved_vs_baseline')  double co2SavedVsBaseline, @JsonKey(name: 'percent_vs_baseline')  double percentVsBaseline, @JsonKey(name: 'xp_earned')  int xpEarned, @JsonKey(name: 'emission_factor_version')  String emissionFactorVersion, @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false)  String syncStatus)  $default,) {final _that = this;
 switch (_that) {
 case _DailyLog():
-return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo2,_that.foodEntries,_that.foodCo2,_that.energyDeviations,_that.energyCo2,_that.totalDailyCo2,_that.baselineCo2,_that.co2SavedVsBaseline,_that.percentVsBaseline,_that.xpEarned,_that.emissionFactorVersion,_that.syncStatus);case _:
+return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo2,_that.foodEntries,_that.foodCo2,_that.energyDeviations,_that.energyCo2,_that.energyConfirmed,_that.totalDailyCo2,_that.baselineCo2,_that.co2SavedVsBaseline,_that.percentVsBaseline,_that.xpEarned,_that.emissionFactorVersion,_that.syncStatus);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -761,10 +762,10 @@ return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId,  String date, @JsonKey(name: 'transport_entries')  List<TransportEntry> transportEntries, @JsonKey(name: 'transport_co2')  double transportCo2, @JsonKey(name: 'food_entries')  List<FoodEntry> foodEntries, @JsonKey(name: 'food_co2')  double foodCo2, @JsonKey(name: 'energy_deviations')  List<String> energyDeviations, @JsonKey(name: 'energy_co2')  double energyCo2, @JsonKey(name: 'total_daily_co2')  double totalDailyCo2, @JsonKey(name: 'baseline_co2')  double baselineCo2, @JsonKey(name: 'co2_saved_vs_baseline')  double co2SavedVsBaseline, @JsonKey(name: 'percent_vs_baseline')  double percentVsBaseline, @JsonKey(name: 'xp_earned')  int xpEarned, @JsonKey(name: 'emission_factor_version')  String emissionFactorVersion, @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false)  String syncStatus)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId,  String date, @JsonKey(name: 'transport_entries')  List<TransportEntry> transportEntries, @JsonKey(name: 'transport_co2')  double transportCo2, @JsonKey(name: 'food_entries')  List<FoodEntry> foodEntries, @JsonKey(name: 'food_co2')  double foodCo2, @JsonKey(name: 'energy_deviations')  List<String> energyDeviations, @JsonKey(name: 'energy_co2')  double energyCo2, @JsonKey(name: 'energy_confirmed')  bool energyConfirmed, @JsonKey(name: 'total_daily_co2')  double totalDailyCo2, @JsonKey(name: 'baseline_co2')  double baselineCo2, @JsonKey(name: 'co2_saved_vs_baseline')  double co2SavedVsBaseline, @JsonKey(name: 'percent_vs_baseline')  double percentVsBaseline, @JsonKey(name: 'xp_earned')  int xpEarned, @JsonKey(name: 'emission_factor_version')  String emissionFactorVersion, @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false)  String syncStatus)?  $default,) {final _that = this;
 switch (_that) {
 case _DailyLog() when $default != null:
-return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo2,_that.foodEntries,_that.foodCo2,_that.energyDeviations,_that.energyCo2,_that.totalDailyCo2,_that.baselineCo2,_that.co2SavedVsBaseline,_that.percentVsBaseline,_that.xpEarned,_that.emissionFactorVersion,_that.syncStatus);case _:
+return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo2,_that.foodEntries,_that.foodCo2,_that.energyDeviations,_that.energyCo2,_that.energyConfirmed,_that.totalDailyCo2,_that.baselineCo2,_that.co2SavedVsBaseline,_that.percentVsBaseline,_that.xpEarned,_that.emissionFactorVersion,_that.syncStatus);case _:
   return null;
 
 }
@@ -776,7 +777,7 @@ return $default(_that.userId,_that.date,_that.transportEntries,_that.transportCo
 @JsonSerializable()
 
 class _DailyLog extends DailyLog {
-  const _DailyLog({@JsonKey(name: 'user_id') required this.userId, required this.date, @JsonKey(name: 'transport_entries') final  List<TransportEntry> transportEntries = const [], @JsonKey(name: 'transport_co2') this.transportCo2 = 0.0, @JsonKey(name: 'food_entries') final  List<FoodEntry> foodEntries = const [], @JsonKey(name: 'food_co2') this.foodCo2 = 0.0, @JsonKey(name: 'energy_deviations') final  List<String> energyDeviations = const [], @JsonKey(name: 'energy_co2') this.energyCo2 = 0.0, @JsonKey(name: 'total_daily_co2') this.totalDailyCo2 = 0.0, @JsonKey(name: 'baseline_co2') this.baselineCo2 = 0.0, @JsonKey(name: 'co2_saved_vs_baseline') this.co2SavedVsBaseline = 0.0, @JsonKey(name: 'percent_vs_baseline') this.percentVsBaseline = 0.0, @JsonKey(name: 'xp_earned') this.xpEarned = 0, @JsonKey(name: 'emission_factor_version') this.emissionFactorVersion = '1.0', @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) this.syncStatus = 'pending'}): _transportEntries = transportEntries,_foodEntries = foodEntries,_energyDeviations = energyDeviations,super._();
+  const _DailyLog({@JsonKey(name: 'user_id') required this.userId, required this.date, @JsonKey(name: 'transport_entries') final  List<TransportEntry> transportEntries = const [], @JsonKey(name: 'transport_co2') this.transportCo2 = 0.0, @JsonKey(name: 'food_entries') final  List<FoodEntry> foodEntries = const [], @JsonKey(name: 'food_co2') this.foodCo2 = 0.0, @JsonKey(name: 'energy_deviations') final  List<String> energyDeviations = const [], @JsonKey(name: 'energy_co2') this.energyCo2 = 0.0, @JsonKey(name: 'energy_confirmed') this.energyConfirmed = false, @JsonKey(name: 'total_daily_co2') this.totalDailyCo2 = 0.0, @JsonKey(name: 'baseline_co2') this.baselineCo2 = 0.0, @JsonKey(name: 'co2_saved_vs_baseline') this.co2SavedVsBaseline = 0.0, @JsonKey(name: 'percent_vs_baseline') this.percentVsBaseline = 0.0, @JsonKey(name: 'xp_earned') this.xpEarned = 0, @JsonKey(name: 'emission_factor_version') this.emissionFactorVersion = '1.0', @JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) this.syncStatus = 'pending'}): _transportEntries = transportEntries,_foodEntries = foodEntries,_energyDeviations = energyDeviations,super._();
   factory _DailyLog.fromJson(Map<String, dynamic> json) => _$DailyLogFromJson(json);
 
 @override@JsonKey(name: 'user_id') final  String userId;
@@ -805,6 +806,7 @@ class _DailyLog extends DailyLog {
 }
 
 @override@JsonKey(name: 'energy_co2') final  double energyCo2;
+@override@JsonKey(name: 'energy_confirmed') final  bool energyConfirmed;
 @override@JsonKey(name: 'total_daily_co2') final  double totalDailyCo2;
 @override@JsonKey(name: 'baseline_co2') final  double baselineCo2;
 @override@JsonKey(name: 'co2_saved_vs_baseline') final  double co2SavedVsBaseline;
@@ -826,16 +828,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DailyLog&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other._transportEntries, _transportEntries)&&(identical(other.transportCo2, transportCo2) || other.transportCo2 == transportCo2)&&const DeepCollectionEquality().equals(other._foodEntries, _foodEntries)&&(identical(other.foodCo2, foodCo2) || other.foodCo2 == foodCo2)&&const DeepCollectionEquality().equals(other._energyDeviations, _energyDeviations)&&(identical(other.energyCo2, energyCo2) || other.energyCo2 == energyCo2)&&(identical(other.totalDailyCo2, totalDailyCo2) || other.totalDailyCo2 == totalDailyCo2)&&(identical(other.baselineCo2, baselineCo2) || other.baselineCo2 == baselineCo2)&&(identical(other.co2SavedVsBaseline, co2SavedVsBaseline) || other.co2SavedVsBaseline == co2SavedVsBaseline)&&(identical(other.percentVsBaseline, percentVsBaseline) || other.percentVsBaseline == percentVsBaseline)&&(identical(other.xpEarned, xpEarned) || other.xpEarned == xpEarned)&&(identical(other.emissionFactorVersion, emissionFactorVersion) || other.emissionFactorVersion == emissionFactorVersion)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DailyLog&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other._transportEntries, _transportEntries)&&(identical(other.transportCo2, transportCo2) || other.transportCo2 == transportCo2)&&const DeepCollectionEquality().equals(other._foodEntries, _foodEntries)&&(identical(other.foodCo2, foodCo2) || other.foodCo2 == foodCo2)&&const DeepCollectionEquality().equals(other._energyDeviations, _energyDeviations)&&(identical(other.energyCo2, energyCo2) || other.energyCo2 == energyCo2)&&(identical(other.energyConfirmed, energyConfirmed) || other.energyConfirmed == energyConfirmed)&&(identical(other.totalDailyCo2, totalDailyCo2) || other.totalDailyCo2 == totalDailyCo2)&&(identical(other.baselineCo2, baselineCo2) || other.baselineCo2 == baselineCo2)&&(identical(other.co2SavedVsBaseline, co2SavedVsBaseline) || other.co2SavedVsBaseline == co2SavedVsBaseline)&&(identical(other.percentVsBaseline, percentVsBaseline) || other.percentVsBaseline == percentVsBaseline)&&(identical(other.xpEarned, xpEarned) || other.xpEarned == xpEarned)&&(identical(other.emissionFactorVersion, emissionFactorVersion) || other.emissionFactorVersion == emissionFactorVersion)&&(identical(other.syncStatus, syncStatus) || other.syncStatus == syncStatus));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,date,const DeepCollectionEquality().hash(_transportEntries),transportCo2,const DeepCollectionEquality().hash(_foodEntries),foodCo2,const DeepCollectionEquality().hash(_energyDeviations),energyCo2,totalDailyCo2,baselineCo2,co2SavedVsBaseline,percentVsBaseline,xpEarned,emissionFactorVersion,syncStatus);
+int get hashCode => Object.hash(runtimeType,userId,date,const DeepCollectionEquality().hash(_transportEntries),transportCo2,const DeepCollectionEquality().hash(_foodEntries),foodCo2,const DeepCollectionEquality().hash(_energyDeviations),energyCo2,energyConfirmed,totalDailyCo2,baselineCo2,co2SavedVsBaseline,percentVsBaseline,xpEarned,emissionFactorVersion,syncStatus);
 
 @override
 String toString() {
-  return 'DailyLog(userId: $userId, date: $date, transportEntries: $transportEntries, transportCo2: $transportCo2, foodEntries: $foodEntries, foodCo2: $foodCo2, energyDeviations: $energyDeviations, energyCo2: $energyCo2, totalDailyCo2: $totalDailyCo2, baselineCo2: $baselineCo2, co2SavedVsBaseline: $co2SavedVsBaseline, percentVsBaseline: $percentVsBaseline, xpEarned: $xpEarned, emissionFactorVersion: $emissionFactorVersion, syncStatus: $syncStatus)';
+  return 'DailyLog(userId: $userId, date: $date, transportEntries: $transportEntries, transportCo2: $transportCo2, foodEntries: $foodEntries, foodCo2: $foodCo2, energyDeviations: $energyDeviations, energyCo2: $energyCo2, energyConfirmed: $energyConfirmed, totalDailyCo2: $totalDailyCo2, baselineCo2: $baselineCo2, co2SavedVsBaseline: $co2SavedVsBaseline, percentVsBaseline: $percentVsBaseline, xpEarned: $xpEarned, emissionFactorVersion: $emissionFactorVersion, syncStatus: $syncStatus)';
 }
 
 
@@ -846,7 +848,7 @@ abstract mixin class _$DailyLogCopyWith<$Res> implements $DailyLogCopyWith<$Res>
   factory _$DailyLogCopyWith(_DailyLog value, $Res Function(_DailyLog) _then) = __$DailyLogCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId, String date,@JsonKey(name: 'transport_entries') List<TransportEntry> transportEntries,@JsonKey(name: 'transport_co2') double transportCo2,@JsonKey(name: 'food_entries') List<FoodEntry> foodEntries,@JsonKey(name: 'food_co2') double foodCo2,@JsonKey(name: 'energy_deviations') List<String> energyDeviations,@JsonKey(name: 'energy_co2') double energyCo2,@JsonKey(name: 'total_daily_co2') double totalDailyCo2,@JsonKey(name: 'baseline_co2') double baselineCo2,@JsonKey(name: 'co2_saved_vs_baseline') double co2SavedVsBaseline,@JsonKey(name: 'percent_vs_baseline') double percentVsBaseline,@JsonKey(name: 'xp_earned') int xpEarned,@JsonKey(name: 'emission_factor_version') String emissionFactorVersion,@JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) String syncStatus
+@JsonKey(name: 'user_id') String userId, String date,@JsonKey(name: 'transport_entries') List<TransportEntry> transportEntries,@JsonKey(name: 'transport_co2') double transportCo2,@JsonKey(name: 'food_entries') List<FoodEntry> foodEntries,@JsonKey(name: 'food_co2') double foodCo2,@JsonKey(name: 'energy_deviations') List<String> energyDeviations,@JsonKey(name: 'energy_co2') double energyCo2,@JsonKey(name: 'energy_confirmed') bool energyConfirmed,@JsonKey(name: 'total_daily_co2') double totalDailyCo2,@JsonKey(name: 'baseline_co2') double baselineCo2,@JsonKey(name: 'co2_saved_vs_baseline') double co2SavedVsBaseline,@JsonKey(name: 'percent_vs_baseline') double percentVsBaseline,@JsonKey(name: 'xp_earned') int xpEarned,@JsonKey(name: 'emission_factor_version') String emissionFactorVersion,@JsonKey(name: 'sync_status', includeToJson: false, includeFromJson: false) String syncStatus
 });
 
 
@@ -863,7 +865,7 @@ class __$DailyLogCopyWithImpl<$Res>
 
 /// Create a copy of DailyLog
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? date = null,Object? transportEntries = null,Object? transportCo2 = null,Object? foodEntries = null,Object? foodCo2 = null,Object? energyDeviations = null,Object? energyCo2 = null,Object? totalDailyCo2 = null,Object? baselineCo2 = null,Object? co2SavedVsBaseline = null,Object? percentVsBaseline = null,Object? xpEarned = null,Object? emissionFactorVersion = null,Object? syncStatus = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? date = null,Object? transportEntries = null,Object? transportCo2 = null,Object? foodEntries = null,Object? foodCo2 = null,Object? energyDeviations = null,Object? energyCo2 = null,Object? energyConfirmed = null,Object? totalDailyCo2 = null,Object? baselineCo2 = null,Object? co2SavedVsBaseline = null,Object? percentVsBaseline = null,Object? xpEarned = null,Object? emissionFactorVersion = null,Object? syncStatus = null,}) {
   return _then(_DailyLog(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
@@ -873,7 +875,8 @@ as double,foodEntries: null == foodEntries ? _self._foodEntries : foodEntries //
 as List<FoodEntry>,foodCo2: null == foodCo2 ? _self.foodCo2 : foodCo2 // ignore: cast_nullable_to_non_nullable
 as double,energyDeviations: null == energyDeviations ? _self._energyDeviations : energyDeviations // ignore: cast_nullable_to_non_nullable
 as List<String>,energyCo2: null == energyCo2 ? _self.energyCo2 : energyCo2 // ignore: cast_nullable_to_non_nullable
-as double,totalDailyCo2: null == totalDailyCo2 ? _self.totalDailyCo2 : totalDailyCo2 // ignore: cast_nullable_to_non_nullable
+as double,energyConfirmed: null == energyConfirmed ? _self.energyConfirmed : energyConfirmed // ignore: cast_nullable_to_non_nullable
+as bool,totalDailyCo2: null == totalDailyCo2 ? _self.totalDailyCo2 : totalDailyCo2 // ignore: cast_nullable_to_non_nullable
 as double,baselineCo2: null == baselineCo2 ? _self.baselineCo2 : baselineCo2 // ignore: cast_nullable_to_non_nullable
 as double,co2SavedVsBaseline: null == co2SavedVsBaseline ? _self.co2SavedVsBaseline : co2SavedVsBaseline // ignore: cast_nullable_to_non_nullable
 as double,percentVsBaseline: null == percentVsBaseline ? _self.percentVsBaseline : percentVsBaseline // ignore: cast_nullable_to_non_nullable

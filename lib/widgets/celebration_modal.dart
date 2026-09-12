@@ -112,7 +112,7 @@ class _CelebrationModalState extends State<CelebrationModal> {
           Container(
             padding: const EdgeInsets.all(28.0),
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark.withValues(alpha: 0.95),
+              color: AppColors.surface(context).withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: widget.iconColor.withValues(alpha: 0.3),
@@ -178,10 +178,10 @@ class _CelebrationModalState extends State<CelebrationModal> {
                 Text(
                       widget.subtitle,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.textPrimary(context),
                       ),
                     )
                     .animate()
@@ -192,9 +192,9 @@ class _CelebrationModalState extends State<CelebrationModal> {
                 Text(
                   widget.description,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textSecondaryDark,
+                    color: AppColors.textSecondary(context),
                     height: 1.4,
                   ),
                 ).animate().fade(delay: 300.ms, duration: 400.ms),

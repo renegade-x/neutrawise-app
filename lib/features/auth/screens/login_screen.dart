@@ -27,7 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -36,8 +36,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: AppColors.textPrimary(context),
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
@@ -47,8 +47,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         content: Text(
           message,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
+          style: TextStyle(
+            color: AppColors.textSecondary(context),
             fontSize: 14,
           ),
         ),
@@ -112,11 +112,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
-        title: const Text('Log In'),
+        title: Text(
+          'Log In',
+          style: TextStyle(color: AppColors.textPrimary(context)),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.textPrimary(context)),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -127,7 +131,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
               Center(
                 child: Image.asset(
-                  'assets/images/logo.png',
+                  AppColors.logo(context),
                   height: 110,
                   fit: BoxFit.contain,
                 ),
@@ -135,12 +139,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppColors.textPrimary(context)),
+                decoration: InputDecoration(
                   labelText: 'Email',
-                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
+                  labelStyle: TextStyle(
+                    color: AppColors.textSecondary(context),
+                  ),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primaryGreen),
                   ),
                 ),
@@ -149,12 +155,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppColors.textPrimary(context)),
+                decoration: InputDecoration(
                   labelText: 'Password',
-                  labelStyle: TextStyle(color: AppColors.textSecondaryDark),
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
+                  labelStyle: TextStyle(
+                    color: AppColors.textSecondary(context),
+                  ),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primaryGreen),
                   ),
                 ),

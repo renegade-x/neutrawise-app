@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/data/repositories/activity_repository.dart';
 
@@ -51,6 +52,9 @@ class SyncManager {
   Future<void> syncPendingLogs() async {
     if (!_isInitialized) return;
 
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) return;
 
@@ -60,17 +64,27 @@ class SyncManager {
       if (jsonStr != null) {
         try {
           final log = DailyLog.fromJson(jsonDecode(jsonStr));
+          // Only attempt to sync logs belonging to the currently logged in user
+          if (log.userId != currentUserId) {
+            continue;
+          }
+
           if (log.syncStatus == 'pending') {
             await _activityRepo.upsertDailyLog(log);
             // Mark as synced locally
             await _offlineBox.put(
-              key,
+              key.toString(),
               jsonEncode(log.copyWith(syncStatus: 'synced').toJson()),
             );
           }
         } catch (e) {
-          // Log error, keep as pending
-          debugPrint('Error syncing log $key: $e');
+          if (e is PostgrestException && e.code == '42501') {
+            // Row-level security violation: purge stale/orphaned log key from local box
+            debugPrint('Purging log $key due to RLS error (42501): $e');
+            await _offlineBox.delete(key);
+          } else {
+            debugPrint('Error syncing log $key: $e');
+          }
         }
       }
     }

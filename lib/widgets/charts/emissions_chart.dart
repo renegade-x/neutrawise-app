@@ -17,12 +17,17 @@ class EmissionsBreakdownChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final surfaceColor = AppColors.surface(context);
+    final textPrimaryColor = AppColors.textPrimary(context);
+    final textSecondaryColor = AppColors.textSecondary(context);
+    final borderColor = AppColors.border(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,20 +35,28 @@ class EmissionsBreakdownChart extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: textPrimaryColor,
             ),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              _buildLegendItem('Transport', AppColors.primaryBlue),
+              _buildLegendItem(
+                'Transport',
+                AppColors.primaryBlue,
+                textSecondaryColor,
+              ),
               const SizedBox(width: 14),
-              _buildLegendItem('Food', AppColors.primaryGreen),
+              _buildLegendItem(
+                'Food',
+                AppColors.primaryGreen,
+                textSecondaryColor,
+              ),
               const SizedBox(width: 14),
-              _buildLegendItem('Energy', AppColors.warning),
+              _buildLegendItem('Energy', AppColors.warning, textSecondaryColor),
             ],
           ),
           const SizedBox(height: 16),
@@ -68,6 +81,8 @@ class EmissionsBreakdownChart extends StatelessWidget {
                       painter: StackedBarChartPainter(
                         logs: logs,
                         baseline: baseline,
+                        textColor: textSecondaryColor,
+                        lineColor: borderColor,
                       ),
                     ),
                   ),
@@ -80,7 +95,7 @@ class EmissionsBreakdownChart extends StatelessWidget {
     );
   }
 
-  Widget _buildLegendItem(String label, Color color) {
+  Widget _buildLegendItem(String label, Color color, Color textColor) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -90,13 +105,7 @@ class EmissionsBreakdownChart extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 10,
-          ),
-        ),
+        Text(label, style: TextStyle(color: textColor, fontSize: 10)),
       ],
     );
   }
@@ -105,8 +114,15 @@ class EmissionsBreakdownChart extends StatelessWidget {
 class StackedBarChartPainter extends CustomPainter {
   final List<DailyLog> logs;
   final double baseline;
+  final Color textColor;
+  final Color lineColor;
 
-  StackedBarChartPainter({required this.logs, required this.baseline});
+  StackedBarChartPainter({
+    required this.logs,
+    required this.baseline,
+    required this.textColor,
+    required this.lineColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -132,7 +148,7 @@ class StackedBarChartPainter extends CustomPainter {
         chartBottomY -
         ((baseline / maxVal) * chartHeight).clamp(0.0, chartHeight);
     final baselinePaint = Paint()
-      ..color = Colors.white24
+      ..color = lineColor
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
@@ -145,8 +161,8 @@ class StackedBarChartPainter extends CustomPainter {
     final baselineText = TextPainter(
       text: TextSpan(
         text: 'Baseline (${baseline.toStringAsFixed(1)})',
-        style: const TextStyle(
-          color: Colors.white38,
+        style: TextStyle(
+          color: textColor,
           fontSize: 9,
           fontWeight: FontWeight.w500,
         ),
@@ -215,10 +231,7 @@ class StackedBarChartPainter extends CustomPainter {
       final datePainter = TextPainter(
         text: TextSpan(
           text: dateStr,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 9,
-          ),
+          style: TextStyle(color: textColor, fontSize: 9),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

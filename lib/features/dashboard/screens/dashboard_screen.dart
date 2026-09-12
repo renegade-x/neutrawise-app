@@ -138,9 +138,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: AppColors.surface(context),
         selectedItemColor: AppColors.primaryGreen,
-        unselectedItemColor: AppColors.textSecondaryDark,
+        unselectedItemColor: AppColors.textSecondary(context),
         showSelectedLabels: true,
         showUnselectedLabels: true,
         onTap: (index) {
@@ -191,7 +191,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
-                      backgroundColor: AppColors.backgroundDark,
+                      backgroundColor: AppColors.background(context),
                       builder: (context) =>
                           ActivityLogSheet(existingLog: todayLog),
                     );
@@ -210,7 +210,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
-                        backgroundColor: AppColors.backgroundDark,
+                        backgroundColor: AppColors.background(context),
                         builder: (context) => const ActivityLogSheet(),
                       );
                     },
@@ -240,17 +240,20 @@ class _DashboardContent extends ConsumerWidget {
     final logsAsync = ref.watch(recentLogsProvider(user.id));
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'NeutraWise',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary(context),
+          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white70),
+            icon: Icon(Icons.logout, color: AppColors.textSecondary(context)),
             onPressed: () {
               ref.read(authProvider.notifier).signOut();
             },
@@ -316,7 +319,9 @@ class _DashboardContent extends ConsumerWidget {
                                             .textTheme
                                             .titleLarge
                                             ?.copyWith(
-                                              color: Colors.white,
+                                              color: AppColors.textPrimary(
+                                                context,
+                                              ),
                                               fontWeight: FontWeight.bold,
                                             ),
                                         overflow: TextOverflow.ellipsis,
@@ -345,21 +350,23 @@ class _DashboardContent extends ConsumerWidget {
                                               ),
                                             ),
                                             const SizedBox(width: 6),
-                                            const Text(
+                                            Text(
                                               '•',
                                               style: TextStyle(
-                                                color:
-                                                    AppColors.textSecondaryDark,
+                                                color: AppColors.textSecondary(
+                                                  context,
+                                                ),
                                                 fontSize: 10,
                                               ),
                                             ),
                                             const SizedBox(width: 6),
                                           ],
-                                          const Text(
+                                          Text(
                                             "Let's make an impact",
                                             style: TextStyle(
-                                              color:
-                                                  AppColors.textSecondaryDark,
+                                              color: AppColors.textSecondary(
+                                                context,
+                                              ),
                                               fontSize: 12,
                                             ),
                                           ),
@@ -378,7 +385,7 @@ class _DashboardContent extends ConsumerWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceDark,
+                              color: AppColors.surface(context),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: AppColors.warning.withValues(alpha: 0.3),
@@ -427,21 +434,21 @@ class _DashboardContent extends ConsumerWidget {
                                       .displayMedium
                                       ?.copyWith(
                                         fontSize: 48,
-                                        color: Colors.white,
+                                        color: AppColors.textPrimary(context),
                                       ),
                                 ),
-                                const Text(
+                                Text(
                                   'kg CO₂e',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.white70,
+                                    color: AppColors.textSecondary(context),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'vs ${(profile.totalDailyBaselineCo2 ?? 0).toStringAsFixed(1)} avg',
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondaryDark,
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary(context),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -522,9 +529,9 @@ class _CategoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         children: [
@@ -532,14 +539,17 @@ class _CategoryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             title,
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary(context),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             '${co2.toStringAsFixed(1)} kg',
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: AppColors.textPrimary(context),
             ),
           ),
         ],
@@ -604,6 +614,7 @@ class _AnimatedRingChartState extends State<AnimatedRingChart>
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = AppColors.surface(context);
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -615,6 +626,7 @@ class _AnimatedRingChartState extends State<AnimatedRingChart>
             energyCo2: widget.energyCo2,
             baseline: widget.baseline,
             progress: _animation.value,
+            backgroundColor: bgColor,
           ),
           child: widget.child,
         );
@@ -629,6 +641,7 @@ class RingChartPainter extends CustomPainter {
   final double energyCo2;
   final double baseline;
   final double progress;
+  final Color backgroundColor;
 
   RingChartPainter({
     required this.transportCo2,
@@ -636,6 +649,7 @@ class RingChartPainter extends CustomPainter {
     required this.energyCo2,
     required this.baseline,
     required this.progress,
+    required this.backgroundColor,
   });
 
   @override
@@ -645,7 +659,7 @@ class RingChartPainter extends CustomPainter {
     const strokeWidth = 20.0;
 
     final paintBg = Paint()
-      ..color = AppColors.surfaceDark
+      ..color = backgroundColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
 
@@ -687,7 +701,8 @@ class RingChartPainter extends CustomPainter {
         oldDelegate.foodCo2 != foodCo2 ||
         oldDelegate.energyCo2 != energyCo2 ||
         oldDelegate.baseline != baseline ||
-        oldDelegate.progress != progress;
+        oldDelegate.progress != progress ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }
 
@@ -755,9 +770,9 @@ class _DailyEcoTipWidgetState extends State<DailyEcoTipWidget> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,20 +780,20 @@ class _DailyEcoTipWidgetState extends State<DailyEcoTipWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.lightbulb_outline,
                     color: AppColors.primaryGreen,
                     size: 24,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Daily Eco Tip',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                 ],
@@ -786,9 +801,9 @@ class _DailyEcoTipWidgetState extends State<DailyEcoTipWidget> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.chevron_left,
-                      color: Colors.white60,
+                      color: AppColors.textSecondary(context),
                       size: 20,
                     ),
                     onPressed: _prevTip,
@@ -797,9 +812,9 @@ class _DailyEcoTipWidgetState extends State<DailyEcoTipWidget> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.chevron_right,
-                      color: Colors.white60,
+                      color: AppColors.textSecondary(context),
                       size: 20,
                     ),
                     onPressed: _nextTip,
@@ -821,8 +836,8 @@ class _DailyEcoTipWidgetState extends State<DailyEcoTipWidget> {
               child: Text(
                 _tips[_currentIndex],
                 key: ValueKey<int>(_currentIndex),
-                style: const TextStyle(
-                  color: AppColors.textSecondaryDark,
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
                   fontSize: 13,
                   height: 1.4,
                 ),

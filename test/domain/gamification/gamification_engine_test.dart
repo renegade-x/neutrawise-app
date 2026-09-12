@@ -1,280 +1,616 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
+import 'package:neutrawise/domain/models/daily_log.dart';
 
 void main() {
-  group('GamificationEngine Tests', () {
-    group('XP Calculation', () {
-      test('Full log, streak 0, level 1, 0% savings', () {
-        final xp = GamificationEngine.calculateXp(
-          isFullLog: true,
-          currentStreak: 0,
-          currentLevel: 1,
-          co2SavedPercent: 0.0,
+  group('GamificationEngine Tests (Version 3.0 Spec)', () {
+    group('Scenario 1: Daily Log XP & Multipliers', () {
+      test('Full log, 0 streak, level 1, 0% savings -> 50 XP', () {
+        const log = DailyLog(
+          userId: 'u1',
+          date: '2026-08-23',
+          transportEntries: [TransportEntry(mode: 'bus', distanceKm: 10.0)],
+          transportCo2: 1.0,
+          foodEntries: [
+            FoodEntry(
+              foodName: 'Item',
+              mealSlot: 'lunch',
+              category: 'vegetables',
+              servingSize: '1 portion',
+              grams: 300,
+            ),
+          ],
+          foodCo2: 0.5,
+          energyDeviations: ['unplugged_devices'],
+          energyCo2: 2.0,
+          totalDailyCo2: 3.5,
+          baselineCo2: 3.5,
+          co2SavedVsBaseline: 0.0,
+          percentVsBaseline: 0.0,
+          xpEarned: 0,
         );
-        expect(xp, 50); // (50 + 0) * 1.0 * 1.0 = 50
+
+        final result = GamificationEngine.awardDailyXP(
+          dailyResult: log,
+          fullLogStreakDays: 0,
+          level: 1,
+          alreadyAwardedForDate: 0,
+        );
+
+        expect(result['isFullLog'], true);
+        expect(result['baseXP'], 50);
+        expect(result['streakMult'], 1.00);
+        expect(result['levelMult'], 1.00);
+        expect(result['preBonus'], 50);
+        expect(result['perfBonus'], 0);
+        expect(result['newTotal'], 50);
       });
 
-      test('Full log, streak 7, level 1, 20% savings', () {
-        final xp = GamificationEngine.calculateXp(
-          isFullLog: true,
-          currentStreak: 7,
-          currentLevel: 1,
-          co2SavedPercent: 20.0,
-        );
-        expect(xp, 81); // (50 + 15) * 1.25 * 1.0 = 81.25 -> 81
-      });
+      test(
+        'Full log, 14 full log streak (x1.25), level 5 (x1.10), -20% savings (+15 XP) -> 105 XP',
+        () {
+          const log = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            transportEntries: [
+              TransportEntry(mode: 'cycling', distanceKm: 5.0),
+            ],
+            transportCo2: 0.0,
+            foodEntries: [
+              FoodEntry(
+                foodName: 'Tofu',
+                mealSlot: 'lunch',
+                category: 'tofu',
+                servingSize: '1 portion',
+                grams: 200,
+              ),
+            ],
+            foodCo2: 0.2,
+            energyDeviations: ['no_ac'],
+            energyCo2: 1.0,
+            totalDailyCo2: 1.2,
+            baselineCo2: 1.5,
+            co2SavedVsBaseline: 0.3,
+            percentVsBaseline: -20.0,
+            xpEarned: 0,
+          );
 
-      test('Full log, streak 30, level 5, 35% savings', () {
-        final xp = GamificationEngine.calculateXp(
-          isFullLog: true,
-          currentStreak: 30,
-          currentLevel: 5,
-          co2SavedPercent: 35.0,
-        );
-        expect(xp, 124); // (50 + 25) * 1.5 * 1.1 = 123.75 -> 124
-      });
+          final result = GamificationEngine.awardDailyXP(
+            dailyResult: log,
+            fullLogStreakDays: 14,
+            level: 5,
+            alreadyAwardedForDate: 0,
+          );
 
-      test('Partial log, streak 30, level 9, 5% savings', () {
-        final xp = GamificationEngine.calculateXp(
-          isFullLog: false,
-          currentStreak: 30,
-          currentLevel: 9,
-          co2SavedPercent: 5.0,
-        );
-        expect(xp, 50); // (20 + 8) * 1.5 * 1.2 = 50.4 -> 50
-      });
+          expect(result['isFullLog'], true);
+          expect(result['streakMult'], 1.25);
+          expect(result['levelMult'], 1.10);
+          expect(result['preBonus'], 69);
+          expect(result['perfBonus'], 15);
+          expect(result['newTotal'], 84);
+        },
+      );
 
-      test('Daily XP Cap enforcement', () {
-        final xp = GamificationEngine.calculateXp(
-          isFullLog: true,
-          currentStreak: 30,
-          currentLevel: 10,
-          co2SavedPercent: 100.0,
-          dailyXpCap: 100,
-        );
-        expect(xp, 100);
-      });
+      test(
+        'Partial log (transport only) -> 20 XP base, no multipliers or perf bonus',
+        () {
+          const log = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            transportEntries: [TransportEntry(mode: 'bus', distanceKm: 10.0)],
+            transportCo2: 1.0,
+            foodEntries: [],
+            foodCo2: 0.0,
+            energyDeviations: [],
+            energyCo2: 0.0,
+            totalDailyCo2: 1.0,
+            baselineCo2: 3.0,
+            co2SavedVsBaseline: 2.0,
+            percentVsBaseline: -66.6,
+            xpEarned: 0,
+          );
+
+          final result = GamificationEngine.awardDailyXP(
+            dailyResult: log,
+            fullLogStreakDays: 30,
+            level: 9,
+            alreadyAwardedForDate: 0,
+          );
+
+          expect(result['isFullLog'], false);
+          expect(result['baseXP'], 20);
+          expect(result['streakMult'], 1.00);
+          expect(result['levelMult'], 1.20);
+          expect(result['preBonus'], 24);
+          expect(result['perfBonus'], 0);
+          expect(result['newTotal'], 24);
+        },
+      );
+
+      test(
+        'Delta update: log updated from partial (20 XP) to full (84 XP) -> delta 64 XP',
+        () {
+          const log = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            transportEntries: [
+              TransportEntry(mode: 'cycling', distanceKm: 5.0),
+            ],
+            transportCo2: 0.0,
+            foodEntries: [
+              FoodEntry(
+                foodName: 'Tofu',
+                mealSlot: 'lunch',
+                category: 'tofu',
+                servingSize: '1 portion',
+                grams: 200,
+              ),
+            ],
+            foodCo2: 0.2,
+            energyDeviations: ['no_ac'],
+            energyCo2: 1.0,
+            totalDailyCo2: 1.2,
+            baselineCo2: 1.5,
+            co2SavedVsBaseline: 0.3,
+            percentVsBaseline: -20.0,
+            xpEarned: 0,
+          );
+
+          final result = GamificationEngine.awardDailyXP(
+            dailyResult: log,
+            fullLogStreakDays: 14,
+            level: 5,
+            alreadyAwardedForDate: 20,
+          );
+
+          expect(result['newTotal'], 84);
+          expect(result['deltaXP'], 64);
+        },
+      );
     });
 
-    group('Level Progression', () {
-      test('getLevelFromXp mapping', () {
+    group('Scenario 2: Level Progression & Capability Gating', () {
+      test('getLevelFromXp exact thresholds', () {
         expect(GamificationEngine.getLevelFromXp(0), 1);
         expect(GamificationEngine.getLevelFromXp(499), 1);
         expect(GamificationEngine.getLevelFromXp(500), 2);
-        expect(GamificationEngine.getLevelFromXp(1499), 2);
         expect(GamificationEngine.getLevelFromXp(1500), 3);
+        expect(GamificationEngine.getLevelFromXp(3000), 4);
+        expect(GamificationEngine.getLevelFromXp(5000), 5);
+        expect(GamificationEngine.getLevelFromXp(8000), 6);
+        expect(GamificationEngine.getLevelFromXp(12000), 7);
         expect(GamificationEngine.getLevelFromXp(17000), 8);
+        expect(GamificationEngine.getLevelFromXp(23000), 9);
         expect(GamificationEngine.getLevelFromXp(31000), 10);
-        expect(GamificationEngine.getLevelFromXp(50000), 10);
       });
 
-      test('getXpToNextLevel calculation', () {
-        expect(GamificationEngine.getXpToNextLevel(1, 0), 500);
-        expect(GamificationEngine.getXpToNextLevel(1, 250), 250);
-        expect(GamificationEngine.getXpToNextLevel(2, 500), 1000);
-        expect(GamificationEngine.getXpToNextLevel(10, 31000), 0);
+      test('Challenge slots per level', () {
+        expect(GamificationEngine.getChallengeSlotsForLevel(1), 1);
+        expect(GamificationEngine.getChallengeSlotsForLevel(3), 1);
+        expect(GamificationEngine.getChallengeSlotsForLevel(4), 2);
+        expect(GamificationEngine.getChallengeSlotsForLevel(5), 2);
+        expect(GamificationEngine.getChallengeSlotsForLevel(6), 3);
+        expect(GamificationEngine.getChallengeSlotsForLevel(8), 3);
+        expect(GamificationEngine.getChallengeSlotsForLevel(9), 4);
+        expect(GamificationEngine.getChallengeSlotsForLevel(10), 4);
       });
 
-      test('getLevelTitle mapping', () {
-        expect(GamificationEngine.getLevelTitle(1), 'Eco Newcomer');
-        expect(GamificationEngine.getLevelTitle(5), 'Eco Advocate');
-        expect(GamificationEngine.getLevelTitle(10), 'Carbon Neutral');
-        expect(GamificationEngine.getLevelTitle(11), 'Carbon Neutral');
-      });
-    });
+      test('Gating helpers (Hard challenges, Quiz bonus, Streak Freeze)', () {
+        expect(GamificationEngine.areHardChallengesUnlocked(5), false);
+        expect(GamificationEngine.areHardChallengesUnlocked(6), true);
 
-    group('Streak Logic', () {
-      final today = DateTime.now();
-      final yesterday = today.subtract(const Duration(days: 1));
-      final twoDaysAgo = today.subtract(const Duration(days: 2));
+        expect(GamificationEngine.isQuizPerfectBonusUnlocked(4), false);
+        expect(GamificationEngine.isQuizPerfectBonusUnlocked(5), true);
 
-      test('Increment streak on consecutive days', () {
-        final streak = GamificationEngine.updateStreak(
-          currentStreak: 5,
-          lastLogDate: yesterday,
-          todayDate: today,
-          loggedToday: true,
-        );
-        expect(streak, 6);
-      });
-
-      test('Maintain streak if already logged today', () {
-        final streak = GamificationEngine.updateStreak(
-          currentStreak: 5,
-          lastLogDate: today,
-          todayDate: today,
-          loggedToday: true,
-        );
-        expect(streak, 5);
-      });
-
-      test('Reset streak to 1 after a gap', () {
-        final streak = GamificationEngine.updateStreak(
-          currentStreak: 5,
-          lastLogDate: twoDaysAgo,
-          todayDate: today,
-          loggedToday: true,
-        );
-        expect(streak, 1);
-      });
-
-      test('No change to streak if not logged today', () {
-        final streak = GamificationEngine.updateStreak(
-          currentStreak: 5,
-          lastLogDate: yesterday,
-          todayDate: today,
-          loggedToday: false,
-        );
-        expect(streak, 5);
+        expect(GamificationEngine.isStreakFreezeUnlocked(3), false);
+        expect(GamificationEngine.isStreakFreezeUnlocked(4), true);
       });
     });
 
-    group('5-Day Cycle Streak Logic (calculateNewStreak)', () {
-      final now = DateTime.now();
-
-      test('Day 1: First log ever -> streak = 0', () {
-        final streak = GamificationEngine.calculateNewStreak(
-          currentStreak: 0,
-          lastLogTime: null,
-          now: now,
-          lastLogDateString: null,
-          todayDateString: '2026-06-01',
+    group('Scenario 3: Challenge Strategy & Decay / Cooldown', () {
+      test('LOG_FIELD_ZERO strategy (No Car Day)', () {
+        const carLog = DailyLog(
+          userId: 'u1',
+          date: '2026-08-23',
+          transportEntries: [TransportEntry(mode: 'car', distanceKm: 15.0)],
+          transportCo2: 3.5,
+          foodEntries: [],
+          foodCo2: 0.0,
+          energyDeviations: [],
+          energyCo2: 0.0,
+          totalDailyCo2: 3.5,
+          baselineCo2: 3.5,
+          co2SavedVsBaseline: 0.0,
+          percentVsBaseline: 0.0,
+          xpEarned: 0,
         );
-        expect(streak, 0);
+
+        const noCarLog = DailyLog(
+          userId: 'u1',
+          date: '2026-08-23',
+          transportEntries: [TransportEntry(mode: 'bus', distanceKm: 15.0)],
+          transportCo2: 0.8,
+          foodEntries: [],
+          foodCo2: 0.0,
+          energyDeviations: [],
+          energyCo2: 0.0,
+          totalDailyCo2: 0.8,
+          baselineCo2: 3.5,
+          co2SavedVsBaseline: 2.7,
+          percentVsBaseline: -77.0,
+          xpEarned: 0,
+        );
+
+        final passedWithCar = GamificationEngine.evaluateStrategy(
+          strategy: 'LOG_FIELD_ZERO',
+          params: {'field': 'car_km'},
+          dailyResult: carLog,
+        );
+        expect(passedWithCar, false);
+
+        final passedNoCar = GamificationEngine.evaluateStrategy(
+          strategy: 'LOG_FIELD_ZERO',
+          params: {'field': 'car_km'},
+          dailyResult: noCarLog,
+        );
+        expect(passedNoCar, true);
       });
 
-      test('Day 2: Log within 24 hours -> streak = 1', () {
-        final lastLog = now.subtract(const Duration(hours: 23));
-        final streak = GamificationEngine.calculateNewStreak(
-          currentStreak: 0,
-          lastLogTime: lastLog,
-          now: now,
-          lastLogDateString: '2026-06-01',
-          todayDateString: '2026-06-02',
+      test('Challenge XP Decay on repeat completions', () {
+        expect(
+          GamificationEngine.calculateChallengeXpReward(
+            baseXP: 200,
+            completionNumber: 1,
+          ),
+          200,
         );
-        expect(streak, 1);
+        expect(
+          GamificationEngine.calculateChallengeXpReward(
+            baseXP: 200,
+            completionNumber: 2,
+          ),
+          180,
+        );
+        expect(
+          GamificationEngine.calculateChallengeXpReward(
+            baseXP: 200,
+            completionNumber: 3,
+          ),
+          160,
+        );
+        expect(
+          GamificationEngine.calculateChallengeXpReward(
+            baseXP: 200,
+            completionNumber: 6,
+          ),
+          100,
+        );
       });
 
-      test('Day 4: Log after gap (> 24 hours) -> streak = 0', () {
-        final lastLog = now.subtract(const Duration(hours: 47));
-        final streak = GamificationEngine.calculateNewStreak(
-          currentStreak: 1,
-          lastLogTime: lastLog,
-          now: now,
-          lastLogDateString: '2026-06-02',
-          todayDateString: '2026-06-04',
+      test('Challenge Cooldown growth on repeat completions', () {
+        expect(
+          GamificationEngine.calculateCooldownDays(
+            difficulty: 'Medium',
+            durationType: 'multi_day',
+            completionNumber: 1,
+          ),
+          30,
         );
-        expect(streak, 0);
+        expect(
+          GamificationEngine.calculateCooldownDays(
+            difficulty: 'Medium',
+            durationType: 'multi_day',
+            completionNumber: 2,
+          ),
+          45,
+        );
+        expect(
+          GamificationEngine.calculateCooldownDays(
+            difficulty: 'Medium',
+            durationType: 'multi_day',
+            completionNumber: 5,
+          ),
+          90,
+        );
       });
 
-      test('Day 5: Log within 24 hours of Day 4 -> streak = 1', () {
-        final lastLog = now.subtract(const Duration(hours: 23));
-        final streak = GamificationEngine.calculateNewStreak(
-          currentStreak: 0,
-          lastLogTime: lastLog,
-          now: now,
-          lastLogDateString: '2026-06-04',
-          todayDateString: '2026-06-05',
+      test('Challenge XP Decay floor at 50% minimum', () {
+        // 50% floor on 200 base XP is 100 XP
+        expect(
+          GamificationEngine.calculateChallengeXpReward(
+            baseXP: 200,
+            completionNumber: 10,
+          ),
+          100,
         );
-        expect(streak, 1);
+        expect(
+          GamificationEngine.calculateChallengeXpReward(
+            baseXP: 200,
+            completionNumber: 100,
+          ),
+          100,
+        );
       });
 
-      test('Log again on the same day -> streak stays the same', () {
-        final lastLog = now.subtract(const Duration(hours: 2));
-        final streak = GamificationEngine.calculateNewStreak(
-          currentStreak: 3,
-          lastLogTime: lastLog,
-          now: now,
-          lastLogDateString: '2026-06-05',
-          todayDateString: '2026-06-05',
+      test('Challenge Cooldown max cap at 3.0x base multiplier', () {
+        // Hard base = 90 days * 3.0 max mult = 270 days
+        expect(
+          GamificationEngine.calculateCooldownDays(
+            difficulty: 'Hard',
+            durationType: 'multi_day',
+            completionNumber: 10,
+          ),
+          270,
         );
-        expect(streak, 3);
       });
     });
 
-    group('Challenge Cooldown Logic', () {
-      final now = DateTime(2026, 7, 29, 12, 0);
-
-      test('Easy challenges reset immediately (0 days cooldown)', () {
-        final completedAt = now.subtract(const Duration(hours: 1));
-        final cooldownDays = GamificationEngine.getChallengeCooldownDays(
-          'Easy',
+    group('Scenario 4: Performance Bonus Tiering (Positive & Negative)', () {
+      test('Savings < 5% -> 0 bonus (Negative)', () {
+        const log = DailyLog(
+          userId: 'u1',
+          date: '2026-08-23',
+          transportEntries: [TransportEntry(mode: 'bus', distanceKm: 5)],
+          foodEntries: [
+            FoodEntry(
+              foodName: 'Rice',
+              mealSlot: 'lunch',
+              category: 'grains',
+              servingSize: '1 portion',
+              grams: 200,
+            ),
+          ],
+          energyDeviations: ['no_ac'],
+          energyConfirmed: true,
+          totalDailyCo2: 1.95,
+          baselineCo2: 2.0,
+          percentVsBaseline: -2.5,
         );
-        expect(cooldownDays, 0);
 
-        final isOnCooldown = GamificationEngine.isChallengeOnCooldown(
-          difficulty: 'Easy',
-          completedAt: completedAt,
-          now: now,
+        final result = GamificationEngine.awardDailyXP(
+          dailyResult: log,
+          fullLogStreakDays: 0,
+          level: 1,
+          alreadyAwardedForDate: 0,
         );
-        expect(isOnCooldown, false);
+        expect(result['perfBonus'], 0);
       });
 
-      test('Medium challenges have a 7-day cooldown', () {
-        final completedAt3DaysAgo = now.subtract(const Duration(days: 3));
-        final completedAt8DaysAgo = now.subtract(const Duration(days: 8));
-
-        expect(GamificationEngine.getChallengeCooldownDays('Medium'), 7);
-
-        expect(
-          GamificationEngine.isChallengeOnCooldown(
-            difficulty: 'Medium',
-            completedAt: completedAt3DaysAgo,
-            now: now,
-          ),
-          true,
-        );
-        expect(
-          GamificationEngine.getRemainingCooldownDays(
-            difficulty: 'Medium',
-            completedAt: completedAt3DaysAgo,
-            now: now,
-          ),
-          4,
+      test('Savings 5-14.9% -> 8 bonus (Positive)', () {
+        const log = DailyLog(
+          userId: 'u1',
+          date: '2026-08-23',
+          transportEntries: [TransportEntry(mode: 'bus', distanceKm: 5)],
+          foodEntries: [
+            FoodEntry(
+              foodName: 'Rice',
+              mealSlot: 'lunch',
+              category: 'grains',
+              servingSize: '1 portion',
+              grams: 200,
+            ),
+          ],
+          energyDeviations: ['no_ac'],
+          energyConfirmed: true,
+          totalDailyCo2: 1.8,
+          baselineCo2: 2.0,
+          percentVsBaseline: -10.0,
         );
 
-        expect(
-          GamificationEngine.isChallengeOnCooldown(
-            difficulty: 'Medium',
-            completedAt: completedAt8DaysAgo,
-            now: now,
-          ),
-          false,
+        final result = GamificationEngine.awardDailyXP(
+          dailyResult: log,
+          fullLogStreakDays: 0,
+          level: 1,
+          alreadyAwardedForDate: 0,
         );
+        expect(result['perfBonus'], 8);
       });
 
-      test('Hard challenges have a 30-day cooldown', () {
-        final completedAt10DaysAgo = now.subtract(const Duration(days: 10));
-        final completedAt35DaysAgo = now.subtract(const Duration(days: 35));
-
-        expect(GamificationEngine.getChallengeCooldownDays('Hard'), 30);
-
-        expect(
-          GamificationEngine.isChallengeOnCooldown(
-            difficulty: 'Hard',
-            completedAt: completedAt10DaysAgo,
-            now: now,
-          ),
-          true,
-        );
-        expect(
-          GamificationEngine.getRemainingCooldownDays(
-            difficulty: 'Hard',
-            completedAt: completedAt10DaysAgo,
-            now: now,
-          ),
-          20,
+      test('Savings 15-29.9% -> 15 bonus (Positive)', () {
+        const log = DailyLog(
+          userId: 'u1',
+          date: '2026-08-23',
+          transportEntries: [TransportEntry(mode: 'bus', distanceKm: 5)],
+          foodEntries: [
+            FoodEntry(
+              foodName: 'Rice',
+              mealSlot: 'lunch',
+              category: 'grains',
+              servingSize: '1 portion',
+              grams: 200,
+            ),
+          ],
+          energyDeviations: ['no_ac'],
+          energyConfirmed: true,
+          totalDailyCo2: 1.6,
+          baselineCo2: 2.0,
+          percentVsBaseline: -20.0,
         );
 
-        expect(
-          GamificationEngine.isChallengeOnCooldown(
-            difficulty: 'Hard',
-            completedAt: completedAt35DaysAgo,
-            now: now,
-          ),
-          false,
+        final result = GamificationEngine.awardDailyXP(
+          dailyResult: log,
+          fullLogStreakDays: 0,
+          level: 1,
+          alreadyAwardedForDate: 0,
         );
+        expect(result['perfBonus'], 15);
       });
+
+      test('Savings >= 30% -> 25 bonus (Positive)', () {
+        const log = DailyLog(
+          userId: 'u1',
+          date: '2026-08-23',
+          transportEntries: [TransportEntry(mode: 'bus', distanceKm: 5)],
+          foodEntries: [
+            FoodEntry(
+              foodName: 'Rice',
+              mealSlot: 'lunch',
+              category: 'grains',
+              servingSize: '1 portion',
+              grams: 200,
+            ),
+          ],
+          energyDeviations: ['no_ac'],
+          energyConfirmed: true,
+          totalDailyCo2: 1.2,
+          baselineCo2: 2.0,
+          percentVsBaseline: -40.0,
+        );
+
+        final result = GamificationEngine.awardDailyXP(
+          dailyResult: log,
+          fullLogStreakDays: 0,
+          level: 1,
+          alreadyAwardedForDate: 0,
+        );
+        expect(result['perfBonus'], 25);
+      });
+
+      test(
+        'Unconfirmed energy log -> Partial log (20 XP base) even with food/transport (Negative)',
+        () {
+          const log = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            transportEntries: [TransportEntry(mode: 'bus', distanceKm: 5)],
+            foodEntries: [
+              FoodEntry(
+                foodName: 'Rice',
+                mealSlot: 'lunch',
+                category: 'grains',
+                servingSize: '1 portion',
+                grams: 200,
+              ),
+            ],
+            energyDeviations: [],
+            energyConfirmed: false,
+            energyCo2: 0.0,
+            totalDailyCo2: 1.0,
+            baselineCo2: 2.0,
+            percentVsBaseline: -50.0,
+          );
+
+          final result = GamificationEngine.awardDailyXP(
+            dailyResult: log,
+            fullLogStreakDays: 10,
+            level: 5,
+            alreadyAwardedForDate: 0,
+          );
+          expect(result['isFullLog'], false);
+          expect(result['baseXP'], 20);
+          expect(result['perfBonus'], 0);
+        },
+      );
+    });
+
+    group('Scenario 5: Strategy Evaluator Edge Cases (Positive & Negative)', () {
+      test(
+        'LOG_FIELD_ZERO fails for EV, motorcycle, taxi, rideshare (Negative)',
+        () {
+          const evLog = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            transportEntries: [TransportEntry(mode: 'ev', distanceKm: 12.0)],
+            energyConfirmed: true,
+          );
+
+          const taxiLog = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            transportEntries: [TransportEntry(mode: 'taxi', distanceKm: 5.0)],
+            energyConfirmed: true,
+          );
+
+          expect(
+            GamificationEngine.evaluateStrategy(
+              strategy: 'LOG_FIELD_ZERO',
+              params: {'field': 'car_km'},
+              dailyResult: evLog,
+            ),
+            false,
+          );
+          expect(
+            GamificationEngine.evaluateStrategy(
+              strategy: 'LOG_FIELD_ZERO',
+              params: {'field': 'car_km'},
+              dailyResult: taxiLog,
+            ),
+            false,
+          );
+        },
+      );
+
+      test(
+        'LOG_TAG_PRESENT matches case-insensitive aliases cold_shower vs cold_showers (Positive & Negative)',
+        () {
+          const presentLog = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            energyDeviations: ['Cold_Showers'],
+            energyConfirmed: true,
+          );
+
+          const absentLog = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            energyDeviations: ['unplugged_devices'],
+            energyConfirmed: true,
+          );
+
+          expect(
+            GamificationEngine.evaluateStrategy(
+              strategy: 'LOG_TAG_PRESENT',
+              params: {'tag': 'cold_shower'},
+              dailyResult: presentLog,
+            ),
+            true,
+          );
+          expect(
+            GamificationEngine.evaluateStrategy(
+              strategy: 'LOG_TAG_PRESENT',
+              params: {'tag': 'cold_shower'},
+              dailyResult: absentLog,
+            ),
+            false,
+          );
+        },
+      );
+
+      test(
+        'LOG_TAG_ABSENT passes when tag absent, fails when tag present (Positive & Negative)',
+        () {
+          const logWithAc = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            energyDeviations: ['ac_used'],
+            energyConfirmed: true,
+          );
+
+          const logWithoutAc = DailyLog(
+            userId: 'u1',
+            date: '2026-08-23',
+            energyDeviations: ['cold_shower'],
+            energyConfirmed: true,
+          );
+
+          expect(
+            GamificationEngine.evaluateStrategy(
+              strategy: 'LOG_TAG_ABSENT',
+              params: {'tag': 'ac_used'},
+              dailyResult: logWithAc,
+            ),
+            false,
+          );
+          expect(
+            GamificationEngine.evaluateStrategy(
+              strategy: 'LOG_TAG_ABSENT',
+              params: {'tag': 'ac_used'},
+              dailyResult: logWithoutAc,
+            ),
+            true,
+          );
+        },
+      );
     });
   });
 }

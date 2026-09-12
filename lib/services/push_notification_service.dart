@@ -36,9 +36,15 @@ class PushNotificationService {
     });
   }
 
+  static String? _currentOneSignalUserId;
+
   static void login(String userId) {
     final appId = Environment.onesignalAppId;
     if (appId.isEmpty) return;
+    if (_currentOneSignalUserId == userId) {
+      return; // Prevent duplicate login calls
+    }
+    _currentOneSignalUserId = userId;
     OneSignal.login(userId);
     debugPrint("OneSignal logged in with external user ID: $userId");
   }
@@ -46,6 +52,10 @@ class PushNotificationService {
   static void logout() {
     final appId = Environment.onesignalAppId;
     if (appId.isEmpty) return;
+    if (_currentOneSignalUserId == null) {
+      return; // Prevent duplicate logout calls
+    }
+    _currentOneSignalUserId = null;
     OneSignal.logout();
     debugPrint("OneSignal logged out");
   }
