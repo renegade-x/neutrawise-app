@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/domain/models/user_profile.dart';
+
 final userRepositoryProvider = Provider(
   (ref) => UserRepository(Supabase.instance.client),
 );

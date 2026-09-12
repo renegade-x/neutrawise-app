@@ -49,6 +49,13 @@ CREATE TABLE IF NOT EXISTS challenges (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS duration_days INT NOT NULL DEFAULT 7;
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS required_days INT NOT NULL DEFAULT 1;
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS consecutive BOOLEAN DEFAULT FALSE;
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS strategy VARCHAR NOT NULL DEFAULT 'APP_BEHAVIOR';
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS completion_criteria JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE challenges ADD COLUMN IF NOT EXISTS icon_name VARCHAR DEFAULT 'eco';
+
 -- Enable RLS on challenges table
 ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow authenticated read on challenges catalog" ON challenges FOR SELECT USING (auth.role() = 'authenticated');

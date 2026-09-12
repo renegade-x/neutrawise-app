@@ -501,7 +501,8 @@ class GamificationEngine {
         return !dailyResult.energyDeviations.any((d) {
           final dev = d.trim().toLowerCase();
           if (targetTag == dev) return true;
-          if ((targetTag == 'ac_used' || targetTag == 'ac') && dev == 'ac_used') {
+          if ((targetTag == 'ac_used' || targetTag == 'ac') &&
+              dev == 'ac_used') {
             return true;
           }
           return false;
