@@ -4,6 +4,7 @@ import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/domain/gamification/quiz_engine.dart';
 import 'package:neutrawise/data/repositories/quiz_repository.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
+import 'package:neutrawise/widgets/modals/error_popup.dart';
 
 class QuizModal extends ConsumerStatefulWidget {
   final String userId;
@@ -86,12 +87,18 @@ class _QuizModalState extends ConsumerState<QuizModal> {
       completedAt: DateTime.now(),
     );
 
-    await ref
-        .read(quizRepositoryProvider)
-        .submitQuizAttempt(widget.userId, attempt, ref);
+    try {
+      await ref
+          .read(quizRepositoryProvider)
+          .submitQuizAttempt(widget.userId, attempt, ref);
 
-    if (mounted) {
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ErrorPopup.showFromException(context, e);
+      }
     }
   }
 

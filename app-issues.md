@@ -17,6 +17,8 @@ Streak not advancing even on 3 days of consecutive activity.
 
 Challenges:
 Challenge progress not updating even on meeting criteria.
+Challenge not appearing in "Active Challenges" area even when it shows as active in the library
 
 Analyze codebase and report extensively on the working mechnisms of the following systems
 streaks, challenges, quizzes, daily logs, OFF API
+When a user submits an activity log and it is pushed to the database, are subsequent logs of the same day new logs or do they edit the same first log?

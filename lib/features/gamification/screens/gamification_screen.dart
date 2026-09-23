@@ -13,6 +13,7 @@ import 'package:neutrawise/widgets/user_avatar.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/widgets/animated_progress_bar.dart';
 import 'package:neutrawise/features/gamification/widgets/quiz_modal.dart';
+import 'package:neutrawise/widgets/modals/error_popup.dart';
 
 class GamificationScreen extends ConsumerStatefulWidget {
   const GamificationScreen({super.key});
@@ -1461,12 +1462,18 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen>
                           return;
                         }
 
-                        await ref
-                            .read(gamificationRepositoryProvider)
-                            .enrollInChallenge(userId, c);
-                        ref.invalidate(activeChallengesProvider(userId));
-                        ref.invalidate(userChallengesProvider(userId));
-                        if (context.mounted) Navigator.pop(context);
+                        try {
+                          await ref
+                              .read(gamificationRepositoryProvider)
+                              .enrollInChallenge(userId, c);
+                          ref.invalidate(activeChallengesProvider(userId));
+                          ref.invalidate(userChallengesProvider(userId));
+                          if (context.mounted) Navigator.pop(context);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ErrorPopup.showFromException(context, e);
+                          }
+                        }
                       },
                       child: const Text('Start'),
                     );

@@ -19,7 +19,7 @@ class LoadingSplashScreen extends StatelessWidget {
                 colors: [AppColors.primaryGreen, AppColors.primaryBlue],
               ).createShader(bounds),
               child: const Text(
-                'NeutraWise',
+                'Neutrawise',
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,

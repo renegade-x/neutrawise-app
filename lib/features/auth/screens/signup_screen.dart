@@ -5,6 +5,10 @@ import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/widgets/buttons/primary_button.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 
+import 'package:neutrawise/widgets/modals/error_popup.dart';
+
+import 'package:neutrawise/widgets/buttons/google_sign_in_button.dart';
+
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
@@ -12,14 +16,22 @@ class SignUpScreen extends ConsumerStatefulWidget {
   ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends ConsumerState<SignUpScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen>
+    with WidgetsBindingObserver {
   final _nameController = TextEditingController();
   final _cityController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _nameController.dispose();
     _cityController.dispose();
     _emailController.dispose();
@@ -27,49 +39,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(authProvider.notifier).clearLoading();
+    }
+  }
+
   void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 28),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: AppColors.textPrimary(context),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: AppColors.textSecondary(context),
-            fontSize: 14,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    ErrorPopup.show(context, title: title, message: message);
   }
 
   Future<void> _signUp() async {
@@ -106,11 +84,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       return;
     }
 
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
     if (!emailRegex.hasMatch(email)) {
-      _showErrorDialog(
-        'Invalid Input Format',
-        'Please enter a valid email address (e.g. user@example.com).',
+      ErrorPopup.showInvalidEmail(
+        context,
+        message: 'Please enter a valid email address (e.g. user@example.com).',
       );
       return;
     }
@@ -128,7 +108,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         .signUp(email, password, name: name, city: city);
 
     if (errorMsg != null && mounted) {
-      _showErrorDialog('Sign Up Failed', errorMsg);
+      ErrorPopup.showFromException(context, errorMsg);
+    }
+  }
+
+  Future<void> _signUpWithGoogle() async {
+    final errorMsg = await ref.read(authProvider.notifier).signInWithGoogle();
+    if (errorMsg != null && mounted) {
+      ErrorPopup.showFromException(context, errorMsg);
     }
   }
 
@@ -254,6 +241,31 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 onPressed: _signUp,
                 isLoading: authState.loading,
               ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.divider(context))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary(context),
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: AppColors.divider(context))),
+                ],
+              ),
+              const SizedBox(height: 20),
+              GoogleSignInButton(
+                text: 'Sign up with Google',
+                onPressed: _signUpWithGoogle,
+                isLoading: authState.loading,
+              ),
+              const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.push('/login'),
                 child: const Text(

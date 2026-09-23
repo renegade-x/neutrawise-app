@@ -148,7 +148,7 @@ function getTitleForType(type: string): string {
     leaderboard_overtaken: "💪 Overtaken on Leaderboard!",
     quiz_available: "🧠 New Quiz Available!",
   };
-  return titles[type] || "NeutraWise";
+  return titles[type] || "Neutrawise";
 }
 
 function getMessageForType(type: string, data?: Record<string, any>): string {

@@ -5,6 +5,10 @@ import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/widgets/buttons/primary_button.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 
+import 'package:neutrawise/widgets/modals/error_popup.dart';
+
+import 'package:neutrawise/widgets/buttons/google_sign_in_button.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -12,60 +16,34 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with WidgetsBindingObserver {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(authProvider.notifier).clearLoading();
+    }
+  }
+
   void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 28),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: AppColors.textPrimary(context),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: AppColors.textSecondary(context),
-            fontSize: 14,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    ErrorPopup.show(context, title: title, message: message);
   }
 
   Future<void> _login() async {
@@ -90,11 +68,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
     if (!emailRegex.hasMatch(email)) {
-      _showErrorDialog(
-        'Invalid Input Format',
-        'Please enter a valid email address (e.g. user@example.com).',
+      ErrorPopup.showInvalidEmail(
+        context,
+        message: 'Please enter a valid email address (e.g. user@example.com).',
       );
       return;
     }
@@ -103,7 +83,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .read(authProvider.notifier)
         .signIn(email, password);
     if (errorMsg != null && mounted) {
-      _showErrorDialog('Login Failed', errorMsg);
+      ErrorPopup.showFromException(context, errorMsg);
+    }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    final errorMsg = await ref.read(authProvider.notifier).signInWithGoogle();
+    if (errorMsg != null && mounted) {
+      ErrorPopup.showFromException(context, errorMsg);
     }
   }
 
@@ -168,12 +155,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 obscureText: true,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => context.push('/forgot-password'),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               PrimaryButton(
                 text: 'Log In',
                 onPressed: _login,
                 isLoading: authState.loading,
               ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.divider(context))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary(context),
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: AppColors.divider(context))),
+                ],
+              ),
+              const SizedBox(height: 20),
+              GoogleSignInButton(
+                text: 'Sign in with Google',
+                onPressed: _loginWithGoogle,
+                isLoading: authState.loading,
+              ),
+              const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.push('/signup'),
                 child: const Text(

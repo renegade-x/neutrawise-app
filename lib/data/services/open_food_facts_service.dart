@@ -13,18 +13,28 @@ final foodServiceProvider = openFoodFactsProvider;
 class OpenFoodFactsProduct {
   final String id;
   final String name;
+  final String? nameUrdu;
   final String? brand;
   final String? ecoScore;
   final double? co2Total;
+  final double? co2Per100g;
+  final double? servingSizeG;
+  final String? mealType;
+  final String? co2Source;
   final String? fallbackCategory;
   final String source;
 
   OpenFoodFactsProduct({
     required this.id,
     required this.name,
+    this.nameUrdu,
     this.brand,
     this.ecoScore,
     this.co2Total,
+    this.co2Per100g,
+    this.servingSizeG,
+    this.mealType,
+    this.co2Source,
     this.fallbackCategory,
     this.source = 'Open Food Facts',
   });
@@ -37,18 +47,37 @@ class OpenFoodFactsProduct {
           ?.toDouble();
     } else if (json['co2_total'] != null) {
       co2 = (json['co2_total'] as num?)?.toDouble();
+    } else if (json['co2_per_100g'] != null) {
+      co2 = (json['co2_per_100g'] as num?)?.toDouble();
     }
+
+    final rawCat =
+        json['category'] ??
+        json['fallback_category'] ??
+        json['categories'] ??
+        '';
+
+    final normalizedCategory = EmissionFactors.normalizeCategory(
+      rawCat.toString(),
+    );
+
+    final servingSize =
+        (json['serving_size_g'] as num?)?.toDouble() ??
+        (json['serving_quantity'] as num?)?.toDouble() ??
+        250.0;
 
     return OpenFoodFactsProduct(
       id: (json['id'] ?? json['code'] ?? '').toString(),
       name: json['product_name'] ?? json['name'] ?? 'Unknown Product',
-      brand: json['brands'] ?? json['brand'] ?? 'Pakistani Dish',
-      ecoScore: json['ecoscore_grade'] ?? json['eco_score'] ?? 'c',
+      nameUrdu: json['name_urdu'] as String?,
+      brand: json['brands'] ?? json['brand'] ?? 'Traditional Pakistani',
+      ecoScore: json['ecoscore_grade'] ?? json['eco_score'] ?? 'b',
       co2Total: co2,
-      fallbackCategory:
-          json['category'] ??
-          json['fallback_category'] ??
-          EmissionFactors.mapOFFCategoryToFactorKey(json['categories'] ?? ''),
+      co2Per100g: (json['co2_per_100g'] as num?)?.toDouble() ?? co2,
+      servingSizeG: servingSize,
+      mealType: json['meal_type'] as String?,
+      co2Source: json['co2_source'] as String?,
+      fallbackCategory: normalizedCategory,
       source: json['source'] ?? 'Open Food Facts',
     );
   }
@@ -64,161 +93,221 @@ class FoodService {
     {
       'id': 'pk_1',
       'name': 'Chicken Biryani',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'poultry',
-      'co2_total': 1.8,
+      'name_urdu': 'چکن بریانی',
+      'brand': 'Traditional Pakistani',
+      'category': 'poultry_chicken',
+      'co2_per_100g': 1.8,
+      'serving_size_g': 350.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'c',
     },
     {
       'id': 'pk_2',
       'name': 'Beef Biryani',
-      'brand': 'Traditional Pakistani Dish',
+      'name_urdu': 'بیف بریانی',
+      'brand': 'Traditional Pakistani',
       'category': 'beef',
-      'co2_total': 4.5,
+      'co2_per_100g': 4.5,
+      'serving_size_g': 350.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'e',
     },
     {
       'id': 'pk_3',
       'name': 'Mutton Karahi',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'lamb',
-      'co2_total': 5.2,
+      'name_urdu': 'مٹن کڑاہی',
+      'brand': 'Traditional Pakistani',
+      'category': 'lamb_mutton',
+      'co2_per_100g': 5.2,
+      'serving_size_g': 300.0,
+      'meal_type': 'Dinner',
       'eco_score': 'e',
     },
     {
       'id': 'pk_4',
       'name': 'Chicken Karahi',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'poultry',
-      'co2_total': 1.7,
+      'name_urdu': 'چکن کڑاہی',
+      'brand': 'Traditional Pakistani',
+      'category': 'poultry_chicken',
+      'co2_per_100g': 1.7,
+      'serving_size_g': 300.0,
+      'meal_type': 'Dinner',
       'eco_score': 'c',
     },
     {
       'id': 'pk_5',
       'name': 'Daal Chawal (Lentil Rice)',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'legumes',
-      'co2_total': 0.6,
+      'name_urdu': 'دال چاول',
+      'brand': 'Traditional Pakistani',
+      'category': 'legumes_dried',
+      'co2_per_100g': 0.6,
+      'serving_size_g': 300.0,
+      'meal_type': 'Lunch',
       'eco_score': 'a',
     },
     {
       'id': 'pk_6',
       'name': 'Aloo Palak (Spinach Potato)',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'vegetables',
-      'co2_total': 0.4,
+      'name_urdu': 'آلو پالک',
+      'brand': 'Traditional Pakistani',
+      'category': 'vegetables_avg',
+      'co2_per_100g': 0.4,
+      'serving_size_g': 250.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'a',
     },
     {
       'id': 'pk_7',
       'name': 'Nihari (Beef Stew)',
-      'brand': 'Traditional Pakistani Dish',
+      'name_urdu': 'نہاری',
+      'brand': 'Traditional Pakistani',
       'category': 'beef',
-      'co2_total': 4.8,
+      'co2_per_100g': 4.8,
+      'serving_size_g': 350.0,
+      'meal_type': 'Breakfast/Dinner',
       'eco_score': 'e',
     },
     {
       'id': 'pk_8',
       'name': 'Haleem (Lentil Meat Stew)',
-      'brand': 'Traditional Pakistani Dish',
+      'name_urdu': 'حلیم',
+      'brand': 'Traditional Pakistani',
       'category': 'beef',
-      'co2_total': 3.2,
+      'co2_per_100g': 3.2,
+      'serving_size_g': 300.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'd',
     },
     {
       'id': 'pk_9',
       'name': 'Chapli Kabab',
-      'brand': 'Traditional Pakistani Dish',
+      'name_urdu': 'چپلی کباب',
+      'brand': 'Traditional Pakistani',
       'category': 'beef',
-      'co2_total': 4.2,
+      'co2_per_100g': 4.2,
+      'serving_size_g': 200.0,
+      'meal_type': 'Dinner',
       'eco_score': 'e',
     },
     {
       'id': 'pk_10',
       'name': 'Chicken Seekh Kabab',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'poultry',
-      'co2_total': 1.6,
+      'name_urdu': 'چکن سیخ کباب',
+      'brand': 'Traditional Pakistani',
+      'category': 'poultry_chicken',
+      'co2_per_100g': 1.6,
+      'serving_size_g': 200.0,
+      'meal_type': 'Dinner',
       'eco_score': 'c',
     },
     {
       'id': 'pk_11',
       'name': 'Samosa (Potato/Pea)',
-      'brand': 'Traditional Pakistani Snack',
-      'category': 'vegetables',
-      'co2_total': 0.5,
+      'name_urdu': 'سموسہ',
+      'brand': 'Traditional Pakistani',
+      'category': 'vegetables_avg',
+      'co2_per_100g': 0.5,
+      'serving_size_g': 150.0,
+      'meal_type': 'Snack',
       'eco_score': 'b',
     },
     {
       'id': 'pk_12',
       'name': 'Aloo Paratha',
-      'brand': 'Traditional Pakistani Flatbread',
-      'category': 'grains',
-      'co2_total': 0.7,
+      'name_urdu': 'آلو پراٹھا',
+      'brand': 'Traditional Pakistani',
+      'category': 'wheat_bread',
+      'co2_per_100g': 0.7,
+      'serving_size_g': 200.0,
+      'meal_type': 'Breakfast',
       'eco_score': 'b',
     },
     {
       'id': 'pk_13',
       'name': 'Tandoori Naan',
-      'brand': 'Traditional Pakistani Bread',
-      'category': 'grains',
-      'co2_total': 0.4,
+      'name_urdu': 'تندوری نان',
+      'brand': 'Traditional Pakistani',
+      'category': 'wheat_bread',
+      'co2_per_100g': 0.4,
+      'serving_size_g': 120.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'a',
     },
     {
       'id': 'pk_14',
       'name': 'Halwa Puri Chana',
-      'brand': 'Traditional Pakistani Breakfast',
-      'category': 'legumes',
-      'co2_total': 0.9,
+      'name_urdu': 'حلوہ پوری چنا',
+      'brand': 'Traditional Pakistani',
+      'category': 'wheat_bread',
+      'co2_per_100g': 0.9,
+      'serving_size_g': 300.0,
+      'meal_type': 'Breakfast',
       'eco_score': 'b',
     },
     {
       'id': 'pk_15',
       'name': 'Kheer (Rice Pudding)',
-      'brand': 'Traditional Pakistani Dessert',
-      'category': 'dairy',
-      'co2_total': 1.1,
+      'name_urdu': 'کھیر',
+      'brand': 'Traditional Pakistani',
+      'category': 'milk_dairy',
+      'co2_per_100g': 1.1,
+      'serving_size_g': 180.0,
+      'meal_type': 'Snack',
       'eco_score': 'c',
     },
     {
       'id': 'pk_16',
       'name': 'Fish Fry (Lahori)',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'fish',
-      'co2_total': 1.9,
+      'name_urdu': 'لاہوری تلی مچھلی',
+      'brand': 'Traditional Pakistani',
+      'category': 'fish_wild',
+      'co2_per_100g': 1.9,
+      'serving_size_g': 250.0,
+      'meal_type': 'Dinner',
       'eco_score': 'c',
     },
     {
       'id': 'pk_17',
       'name': 'Mix Sabzi (Assorted Veggies)',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'vegetables',
-      'co2_total': 0.3,
+      'name_urdu': 'مکس سبزی',
+      'brand': 'Traditional Pakistani',
+      'category': 'vegetables_avg',
+      'co2_per_100g': 0.3,
+      'serving_size_g': 250.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'a',
     },
     {
       'id': 'pk_18',
       'name': 'Chana Masala (Chickpeas)',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'legumes',
-      'co2_total': 0.5,
+      'name_urdu': 'چنا مصالحہ',
+      'brand': 'Traditional Pakistani',
+      'category': 'legumes_dried',
+      'co2_per_100g': 0.5,
+      'serving_size_g': 250.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'a',
     },
     {
       'id': 'pk_19',
       'name': 'Siri Paye',
-      'brand': 'Traditional Pakistani Dish',
+      'name_urdu': 'سری پائے',
+      'brand': 'Traditional Pakistani',
       'category': 'beef',
-      'co2_total': 4.6,
+      'co2_per_100g': 4.6,
+      'serving_size_g': 350.0,
+      'meal_type': 'Breakfast/Dinner',
       'eco_score': 'e',
     },
     {
       'id': 'pk_20',
       'name': 'Chicken Pulao',
-      'brand': 'Traditional Pakistani Dish',
-      'category': 'poultry',
-      'co2_total': 1.5,
+      'name_urdu': 'چکن پلاؤ',
+      'brand': 'Traditional Pakistani',
+      'category': 'poultry_chicken',
+      'co2_per_100g': 1.5,
+      'serving_size_g': 350.0,
+      'meal_type': 'Lunch/Dinner',
       'eco_score': 'c',
     },
   ];
@@ -231,27 +320,42 @@ class FoodService {
     final q = query.trim().toLowerCase();
     final List<OpenFoodFactsProduct> results = [];
 
-    // Step 1: Query Supabase pakistani_foods primary DB
+    // Step 1: Query Supabase pakistani_foods primary DB (English, Urdu, Category)
     if (_supabase != null) {
       try {
         final List<dynamic> pkResponse = await _supabase
             .from('pakistani_foods')
             .select()
-            .ilike('name', '%$q%')
-            .limit(10);
+            .or('name.ilike.%$q%,name_urdu.ilike.%$q%,category.ilike.%$q%')
+            .limit(15);
 
         if (pkResponse.isNotEmpty) {
           for (final item in pkResponse) {
             final m = Map<String, dynamic>.from(item as Map);
+            final rawCat = m['category'] as String? ?? 'vegetables_avg';
+            final normalizedCategory = EmissionFactors.normalizeCategory(
+              rawCat,
+            );
+            final co2Val =
+                (m['co2_per_100g'] as num?)?.toDouble() ??
+                (m['co2_total'] as num?)?.toDouble() ??
+                1.5;
+
             results.add(
               OpenFoodFactsProduct(
                 id: (m['id'] ?? '').toString(),
                 name: m['name'] as String? ?? '',
-                brand: m['brand'] as String? ?? 'Pakistani Dish',
-                ecoScore: m['eco_score'] as String? ?? 'c',
-                co2Total: (m['co2_total'] as num?)?.toDouble() ?? 1.5,
-                fallbackCategory: m['category'] as String? ?? 'poultry',
-                source: 'Pakistani Dish DB',
+                nameUrdu: m['name_urdu'] as String?,
+                brand: m['brand'] as String? ?? 'Traditional Pakistani',
+                ecoScore: m['eco_score'] as String? ?? 'b',
+                co2Total: co2Val,
+                co2Per100g: co2Val,
+                servingSizeG:
+                    (m['serving_size_g'] as num?)?.toDouble() ?? 250.0,
+                mealType: m['meal_type'] as String?,
+                co2Source: m['co2_source'] as String?,
+                fallbackCategory: normalizedCategory,
+                source: 'Pakistani Food DB',
               ),
             );
           }
@@ -265,19 +369,29 @@ class FoodService {
     if (results.isEmpty) {
       final matchedLocal = _defaultPakistaniDishes.where((item) {
         final name = (item['name'] as String).toLowerCase();
-        return name.contains(q);
+        final nameUrdu = (item['name_urdu'] as String? ?? '').toLowerCase();
+        final category = (item['category'] as String).toLowerCase();
+        return name.contains(q) || nameUrdu.contains(q) || category.contains(q);
       }).toList();
 
       for (final m in matchedLocal) {
+        final rawCat = m['category'] as String;
+        final normalizedCategory = EmissionFactors.normalizeCategory(rawCat);
+        final co2Val = (m['co2_per_100g'] as num).toDouble();
+
         results.add(
           OpenFoodFactsProduct(
             id: m['id'] as String,
             name: m['name'] as String,
-            brand: m['brand'] as String,
-            ecoScore: m['eco_score'] as String,
-            co2Total: (m['co2_total'] as num).toDouble(),
-            fallbackCategory: m['category'] as String,
-            source: 'Pakistani Dish DB',
+            nameUrdu: m['name_urdu'] as String?,
+            brand: m['brand'] as String? ?? 'Traditional Pakistani',
+            ecoScore: m['eco_score'] as String? ?? 'b',
+            co2Total: co2Val,
+            co2Per100g: co2Val,
+            servingSizeG: (m['serving_size_g'] as num?)?.toDouble() ?? 250.0,
+            mealType: m['meal_type'] as String?,
+            fallbackCategory: normalizedCategory,
+            source: 'Pakistani Food DB',
           ),
         );
       }
@@ -290,7 +404,7 @@ class FoodService {
       );
       final response = await http.get(
         uri,
-        headers: {'User-Agent': 'NeutraWiseApp/1.0'},
+        headers: {'User-Agent': 'NeutrawiseApp/1.0'},
       );
 
       if (response.statusCode == 200) {

@@ -141,6 +141,28 @@ class AuthNotifier extends Notifier<AuthStateData> {
     }
   }
 
+  Future<String?> signInWithGoogle({String? redirectTo}) async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final success = await _authRepo.signInWithGoogle(redirectTo: redirectTo);
+      state = state.copyWith(loading: false);
+      if (!success) {
+        return 'Google Sign-In was cancelled or failed to open.';
+      }
+      return null;
+    } catch (e) {
+      final formattedError = _formatAuthError(e);
+      state = state.copyWith(error: formattedError, loading: false);
+      return formattedError;
+    }
+  }
+
+  void clearLoading() {
+    if (state.loading) {
+      state = state.copyWith(loading: false);
+    }
+  }
+
   Future<void> signOut() async {
     state = state.copyWith(loading: true);
     try {
@@ -169,6 +191,25 @@ class AuthNotifier extends Notifier<AuthStateData> {
     }
   }
 
+  Future<String?> resetPasswordForEmail(
+    String email, {
+    String? redirectTo,
+  }) async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      await _authRepo.resetPasswordForEmail(
+        email: email,
+        redirectTo: redirectTo,
+      );
+      state = state.copyWith(loading: false);
+      return null;
+    } catch (e) {
+      final formattedError = _formatAuthError(e);
+      state = state.copyWith(error: formattedError, loading: false);
+      return formattedError;
+    }
+  }
+
   Future<String?> deleteAccount() async {
     state = state.copyWith(loading: true, error: null);
     try {
@@ -188,11 +229,30 @@ class AuthNotifier extends Notifier<AuthStateData> {
   String _formatAuthError(dynamic error) {
     final message = error.toString().toLowerCase();
 
+    if (message.contains('socketexception') ||
+        message.contains('failed host lookup') ||
+        message.contains('network is unreachable') ||
+        message.contains('connection refused') ||
+        message.contains('clientexception') ||
+        message.contains('no internet') ||
+        message.contains('offline')) {
+      return 'Network Error: Please check your internet connection and try again.';
+    }
+
+    if (message.contains('rate limit') ||
+        message.contains('too many requests') ||
+        message.contains('429') ||
+        message.contains('over_email_send_rate_limit') ||
+        message.contains('resource_exhausted')) {
+      return 'Too many requests: You have made too many requests. Please wait a moment and try again.';
+    }
+
     if (message.contains('invalid login credentials') ||
         message.contains('invalid_credentials') ||
+        message.contains('invalid_grant') ||
         message.contains('user not found') ||
         message.contains('wrong password')) {
-      return 'Invalid email or password. Please double check your credentials.';
+      return 'Incorrect login credentials: The email or password you entered is incorrect.';
     }
 
     if (message.contains('user already registered') ||
@@ -206,8 +266,19 @@ class AuthNotifier extends Notifier<AuthStateData> {
     }
 
     if (message.contains('unable to validate email') ||
-        message.contains('invalid email')) {
-      return 'Please enter a valid email address.';
+        message.contains('invalid email') ||
+        message.contains('email_address_invalid')) {
+      return 'Invalid Email: Please enter a valid email address.';
+    }
+
+    if (message.contains('timeout') ||
+        message.contains('500') ||
+        message.contains('502') ||
+        message.contains('503') ||
+        message.contains('504') ||
+        message.contains('internal server error') ||
+        message.contains('service unavailable')) {
+      return 'Something went wrong: Server error or request timed out. Please try again later.';
     }
 
     return error.toString().replaceAll('Exception: ', '');

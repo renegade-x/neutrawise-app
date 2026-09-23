@@ -33,12 +33,29 @@ class AuthRepository {
     return await _auth.signInWithPassword(email: email, password: password);
   }
 
+  Future<bool> signInWithGoogle({String? redirectTo}) async {
+    return await _auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: redirectTo ?? 'io.supabase.neutrawise://login-callback',
+    );
+  }
+
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
   Future<void> updatePassword(String newPassword) async {
     await _auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  Future<void> resetPasswordForEmail({
+    required String email,
+    String? redirectTo,
+  }) async {
+    await _auth.resetPasswordForEmail(
+      email,
+      redirectTo: redirectTo ?? 'io.supabase.neutrawise://reset-password',
+    );
   }
 
   Future<void> deleteAccount() async {

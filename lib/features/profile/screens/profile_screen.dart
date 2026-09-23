@@ -13,6 +13,7 @@ import 'package:neutrawise/domain/models/user_profile.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
 import 'package:neutrawise/widgets/animated_progress_bar.dart';
 import 'package:neutrawise/widgets/user_avatar.dart';
+import 'package:neutrawise/widgets/modals/error_popup.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -22,8 +23,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _loadingPrefs = true;
-  Map<String, dynamic> _notifPrefs = {};
   int _completedChallenges = 0;
   final ImagePicker _picker = ImagePicker();
 
@@ -51,28 +50,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _loadPreferencesAndStats() async {
     final user = ref.read(authProvider).user;
     if (user != null) {
-      final userRepo = ref.read(userRepositoryProvider);
       final gamificationRepo = ref.read(gamificationRepositoryProvider);
-      final prefs = await userRepo.getNotificationPreferences(user.id);
       final completedCount = await gamificationRepo.getCompletedChallengesCount(
         user.id,
       );
 
       if (mounted) {
         setState(() {
-          _notifPrefs = prefs;
           _completedChallenges = completedCount;
-          _loadingPrefs = false;
         });
       }
-    }
-  }
-
-  void _savePrefs() async {
-    final user = ref.read(authProvider).user;
-    if (user != null) {
-      final userRepo = ref.read(userRepositoryProvider);
-      await userRepo.saveNotificationPreferences(user.id, _notifPrefs);
     }
   }
 
@@ -97,12 +84,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update avatar: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        ErrorPopup.showFromException(context, e);
       }
     }
   }
@@ -123,12 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking image: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        ErrorPopup.showFromException(context, e);
       }
     }
   }
@@ -580,12 +557,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                       if (mounted) {
                         if (error != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(error),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          ErrorPopup.showFromException(context, error);
                         } else {
                           if (ctx.mounted) {
                             Navigator.pop(ctx);
@@ -684,12 +656,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                       if (mounted) {
                         if (error != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(error),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          ErrorPopup.showFromException(context, error);
                         } else {
                           if (ctx.mounted) {
                             Navigator.pop(ctx);
@@ -773,25 +740,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       default:
         return Icons.military_tech;
     }
-  }
-
-  Widget _buildNotifSwitch(String title, String key) {
-    final bool value = _notifPrefs[key] ?? true;
-    return SwitchListTile(
-      title: Text(
-        title,
-        style: TextStyle(color: AppColors.textPrimary(context), fontSize: 14),
-      ),
-      value: value,
-      activeThumbColor: AppColors.primaryGreen,
-      dense: true,
-      onChanged: (val) {
-        setState(() {
-          _notifPrefs[key] = val;
-        });
-        _savePrefs();
-      },
-    );
   }
 
   @override
@@ -1253,32 +1201,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 Divider(color: AppColors.divider(context)),
 
-                // Notifications Settings
-                if (!_loadingPrefs) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12.0),
-                    child: Text(
-                      'Notification Preferences',
-                      style: TextStyle(
-                        color: AppColors.primaryGreen,
-                        fontWeight: FontWeight.bold,
-                      ),
+                // Notification Preferences Submenu
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_outlined,
+                      color: AppColors.primaryGreen,
+                      size: 20,
                     ),
                   ),
-                  _buildNotifSwitch('Daily Log Reminder', 'daily_log_reminder'),
-                  _buildNotifSwitch('Streak Warnings', 'streak_warnings'),
-                  _buildNotifSwitch(
-                    'Challenge Reminders',
-                    'challenge_reminders',
+                  title: Text(
+                    'Notification Preferences',
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  _buildNotifSwitch(
-                    'Leaderboard Overtake',
-                    'leaderboard_overtake',
+                  subtitle: Text(
+                    'Reminders, streak alerts, challenges & summaries',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 12,
+                    ),
                   ),
-                  _buildNotifSwitch('Quiz Notifications', 'quiz_available'),
-                  _buildNotifSwitch('Weekly Summary', 'weekly_summary'),
-                ],
-
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  onTap: () {
+                    context.push('/notification-preferences');
+                  },
+                ),
                 Divider(color: AppColors.divider(context)),
                 ListTile(
                   title: Text(

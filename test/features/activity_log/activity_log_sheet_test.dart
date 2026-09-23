@@ -96,5 +96,55 @@ void main() {
       expect(resultLog.energyCo2, 0.0);
       expect(resultLog.totalDailyCo2, closeTo(0.70, 0.01));
     });
+
+    test(
+      'Process Pakistani food entries with un-normalized categories like grains, legumes, poultry',
+      () {
+        final foodEntries = [
+          const FoodEntry(
+            mealSlot: 'Breakfast',
+            foodName: 'Aloo Paratha',
+            category: 'grains',
+            servingSize: 'medium',
+            grams: 200.0,
+          ),
+          const FoodEntry(
+            mealSlot: 'Lunch',
+            foodName: 'Daal Chawal',
+            category: 'legumes',
+            servingSize: 'medium',
+            grams: 300.0,
+            co2Per100g: 0.6,
+          ),
+          const FoodEntry(
+            mealSlot: 'Dinner',
+            foodName: 'Chicken Biryani',
+            category: 'poultry_chicken',
+            servingSize: 'medium',
+            grams: 350.0,
+            co2Per100g: 1.8,
+          ),
+        ];
+
+        final resultLog = CO2Calculator.processDailyLog(
+          mockProfile,
+          '2026-05-24',
+          [],
+          foodEntries,
+          [],
+          false,
+          0,
+        );
+
+        // Aloo Paratha: (200g * 1.6 / 1000) = 0.32 kg
+        // Daal Chawal: (300g * 0.6 / 1000) = 0.18 kg
+        // Chicken Biryani: (350g * 1.8 / 1000) = 0.63 kg
+        // Total Food CO2 = 0.32 + 0.18 + 0.63 = 1.13 kg
+        expect(resultLog.foodEntries[0].calculatedCo2, closeTo(0.32, 0.01));
+        expect(resultLog.foodEntries[1].calculatedCo2, closeTo(0.18, 0.01));
+        expect(resultLog.foodEntries[2].calculatedCo2, closeTo(0.63, 0.01));
+        expect(resultLog.foodCo2, closeTo(1.13, 0.01));
+      },
+    );
   });
 }

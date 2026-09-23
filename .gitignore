@@ -44,7 +44,19 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-#Documents
+# Documents
 /Neutrawise_Algorithm_Specification_v1.0.md
-# Env vars
+
+# Env vars & Secrets
 .env
+.env.*
+*.env
+*.pem
+*.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+local.properties
+supabase/.temp/
+.system_generated/

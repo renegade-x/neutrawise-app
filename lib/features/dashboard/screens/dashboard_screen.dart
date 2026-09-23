@@ -245,7 +245,7 @@ class _DashboardContent extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'NeutraWise',
+          'Neutrawise',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary(context),

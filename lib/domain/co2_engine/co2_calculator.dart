@@ -110,14 +110,11 @@ class CO2Calculator {
     double totalFoodCo2 = 0.0;
     List<FoodEntry> processedFood = [];
     for (var entry in foodEntries) {
-      double itemCo2 = 0.0;
-      if (entry.co2Per100g != null && entry.co2Per100g! > 0) {
-        itemCo2 = (entry.co2Per100g! / 1000.0) * (entry.grams / 100.0);
-      } else {
-        final factorKgPerKg =
-            EmissionFactors.foodCategoryFactors[entry.category] ?? 0.4;
-        itemCo2 = factorKgPerKg * (entry.grams / 1000.0);
-      }
+      final itemCo2 = EmissionFactors.calculateFoodCo2(
+        grams: entry.grams,
+        category: entry.category,
+        co2Factor: entry.co2Per100g,
+      );
       processedFood.add(entry.copyWith(calculatedCo2: itemCo2));
       totalFoodCo2 += itemCo2;
     }

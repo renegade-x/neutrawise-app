@@ -8,6 +8,7 @@ import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/widgets/buttons/primary_button.dart';
 import 'package:neutrawise/widgets/theme/app_colors.dart';
+import 'package:neutrawise/widgets/modals/error_popup.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -189,16 +190,27 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       final userRepo = ref.read(userRepositoryProvider);
       final existingProfile = await userRepo.getUserProfile(user.id);
 
+      final googleFullName =
+          (user.userMetadata?['full_name'] ?? user.userMetadata?['name'])
+              as String?;
+      final googleAvatar =
+          (user.userMetadata?['avatar_url'] ?? user.userMetadata?['picture'])
+              as String?;
+      final userCity = user.userMetadata?['city'] as String?;
+
+      final initialName =
+          googleFullName != null && googleFullName.trim().isNotEmpty
+          ? googleFullName.trim()
+          : (user.email?.split('@').first ?? 'User');
+
       final profile =
           (existingProfile ??
                   UserProfile(
                     id: user.id,
-                    name:
-                        user.userMetadata?['name'] as String? ??
-                        user.email?.split('@').first ??
-                        'User',
+                    name: initialName,
                     email: user.email,
-                    city: user.userMetadata?['city'] as String?,
+                    avatarUrl: googleAvatar,
+                    city: userCity,
                   ))
               .copyWith(
                 primaryTransport: _primaryTransport,
@@ -227,21 +239,27 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 gridIntensity: baselineData['grid_intensity'] as double?,
               );
 
-      await userRepo.saveUserProfile(profile);
-      ref.invalidate(userProfileProvider(user.id));
+      try {
+        await userRepo.saveUserProfile(profile);
+        ref.invalidate(userProfileProvider(user.id));
 
-      if (mounted) {
-        ref.read(authProvider.notifier).markProfileSetupComplete();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Baseline profile updated successfully!'),
-            backgroundColor: AppColors.primaryGreen,
-          ),
-        );
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        } else {
-          context.go('/dashboard');
+        if (mounted) {
+          ref.read(authProvider.notifier).markProfileSetupComplete();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Baseline profile updated successfully!'),
+              backgroundColor: AppColors.primaryGreen,
+            ),
+          );
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/dashboard');
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ErrorPopup.showFromException(context, e);
         }
       }
     }

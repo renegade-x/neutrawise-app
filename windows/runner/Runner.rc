@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.neutrawise" "\0"
-            VALUE "FileDescription", "neutrawise" "\0"
+            VALUE "FileDescription", "Neutrawise" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "neutrawise" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.neutrawise. All rights reserved." "\0"
             VALUE "OriginalFilename", "neutrawise.exe" "\0"
-            VALUE "ProductName", "neutrawise" "\0"
+            VALUE "ProductName", "Neutrawise" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

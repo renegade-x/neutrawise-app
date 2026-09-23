@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/config/environment.dart';
 import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
@@ -11,29 +10,53 @@ import 'package:neutrawise/features/gamification/widgets/quiz_modal.dart';
 import 'package:neutrawise/routing/router.dart';
 
 class PushNotificationService {
-  static void initialize(WidgetRef ref) {
+  static bool _initialized = false;
+
+  /// Initializes OneSignal and triggers system permission prompt on first launch.
+  static Future<void> initialize(dynamic ref) async {
+    if (_initialized) return;
+
     final appId = Environment.onesignalAppId;
     if (appId.isEmpty) {
       debugPrint("OneSignal App ID is empty. Skipping initialization.");
       return;
     }
 
-    OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-    OneSignal.initialize(appId);
+    try {
+      OneSignal.Debug.setLogLevel(OSLogLevel.none);
+      OneSignal.initialize(appId);
 
-    // Request push notification permission
-    OneSignal.Notifications.requestPermission(true);
+      // Prompt user for notification permission on initial launch
+      await requestPermission();
 
-    // Handle notification tap
-    OneSignal.Notifications.addClickListener((event) {
-      final data = event.notification.additionalData;
-      _handleNotificationTap(ref, data);
-    });
+      // Handle notification tap
+      OneSignal.Notifications.addClickListener((event) {
+        final data = event.notification.additionalData;
+        handleNotificationTap(ref, data);
+      });
 
-    // Handle notification received (foreground)
-    OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-      event.notification.display();
-    });
+      // Handle notification received (foreground)
+      OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+        event.notification.display();
+      });
+
+      _initialized = true;
+      debugPrint("PushNotificationService initialized successfully.");
+    } catch (e) {
+      debugPrint("Error initializing PushNotificationService: $e");
+    }
+  }
+
+  /// Explicitly requests system push notification permissions from the OS.
+  static Future<bool> requestPermission() async {
+    try {
+      final granted = await OneSignal.Notifications.requestPermission(true);
+      debugPrint("Push notification permission requested: $granted");
+      return granted;
+    } catch (e) {
+      debugPrint("Error requesting push notification permission: $e");
+      return false;
+    }
   }
 
   static String? _currentOneSignalUserId;
@@ -60,8 +83,8 @@ class PushNotificationService {
     debugPrint("OneSignal logged out");
   }
 
-  static Future<void> _handleNotificationTap(
-    WidgetRef ref,
+  static Future<void> handleNotificationTap(
+    dynamic ref,
     Map<String, dynamic>? data,
   ) async {
     if (data == null) return;

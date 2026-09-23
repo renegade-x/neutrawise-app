@@ -9,6 +9,8 @@ import 'package:neutrawise/routing/router.dart';
 
 import 'package:neutrawise/providers/theme_provider.dart';
 
+import 'package:neutrawise/services/push_notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -27,16 +29,28 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize push notifications and trigger OS permission request on first launch
+    PushNotificationService.initialize(ref);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final goRouter = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'NeutraWise',
+      title: 'Neutrawise',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,

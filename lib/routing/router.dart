@@ -5,7 +5,10 @@ import 'package:neutrawise/providers/auth_provider.dart';
 import 'package:neutrawise/features/auth/screens/onboarding_screen.dart';
 import 'package:neutrawise/features/auth/screens/login_screen.dart';
 import 'package:neutrawise/features/auth/screens/signup_screen.dart';
+import 'package:neutrawise/features/auth/screens/forgot_password_screen.dart';
+import 'package:neutrawise/features/auth/screens/reset_password_screen.dart';
 import 'package:neutrawise/features/auth/screens/profile_setup_screen.dart';
+import 'package:neutrawise/features/profile/screens/notification_preferences_screen.dart';
 import 'package:neutrawise/features/dashboard/screens/dashboard_screen.dart';
 import 'package:neutrawise/features/auth/screens/loading_splash_screen.dart';
 
@@ -30,25 +33,33 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: listenable,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
-
-      if (authState.loading) {
-        if (state.uri.path == '/') return null;
-        return '/'; // Go to loading splash screen while checking session
-      }
-
       final isAuth = authState.isAuthenticated;
       final hasSeenOnboarding = authState.hasSeenOnboarding;
-      final isLoggingIn =
+      final isAuthFlow =
           state.uri.path == '/login' ||
           state.uri.path == '/signup' ||
-          state.uri.path == '/onboarding';
+          state.uri.path == '/onboarding' ||
+          state.uri.path == '/forgot-password' ||
+          state.uri.path == '/reset-password';
+
+      // Always allow reset-password route during password recovery flows
+      if (state.uri.path == '/reset-password') {
+        return null;
+      }
+
+      if (authState.loading) {
+        // While checking initial session on startup (at '/'), stay on '/'
+        // If already in an auth flow (user tapped Log In/Sign Up), stay on screen to show button spinner
+        if (state.uri.path == '/' || isAuthFlow) return null;
+        return '/'; // Go to loading splash screen while checking initial session
+      }
 
       if (!isAuth) {
         if (!hasSeenOnboarding) {
           if (state.uri.path == '/onboarding') return null;
           return '/onboarding';
         }
-        if (isLoggingIn) return null;
+        if (isAuthFlow) return null;
         return '/login';
       }
 
@@ -59,7 +70,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If authenticated and profile is setup
-      if (isLoggingIn || state.uri.path == '/') {
+      if (isAuthFlow || state.uri.path == '/') {
         return '/dashboard';
       }
 
@@ -80,8 +91,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SignUpScreen(),
       ),
       GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'];
+          return ResetPasswordScreen(resetToken: token);
+        },
+      ),
+      GoRoute(
         path: '/profile-setup',
         builder: (context, state) => const ProfileSetupScreen(),
+      ),
+      GoRoute(
+        path: '/notification-preferences',
+        builder: (context, state) => const NotificationPreferencesScreen(),
       ),
       GoRoute(
         path: '/dashboard',

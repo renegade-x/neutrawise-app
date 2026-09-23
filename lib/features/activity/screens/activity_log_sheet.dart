@@ -15,6 +15,7 @@ import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 import 'package:neutrawise/widgets/celebration_modal.dart';
 import 'package:neutrawise/routing/router.dart';
 import 'package:neutrawise/data/repositories/gamification_repository.dart';
+import 'package:neutrawise/widgets/modals/error_popup.dart';
 
 class ActivityLogSheet extends ConsumerStatefulWidget {
   final DailyLog? existingLog;
@@ -102,13 +103,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
   }
 
   double _getFoodItemCo2(String category, double grams, double? co2Per100g) {
-    if (co2Per100g != null && co2Per100g > 0) {
-      return (co2Per100g / 1000.0) * (grams / 100.0);
-    } else {
-      final factorKgPerKg =
-          EmissionFactors.foodCategoryFactors[category] ?? 0.4;
-      return factorKgPerKg * (grams / 1000.0);
-    }
+    return EmissionFactors.calculateFoodCo2(
+      grams: grams,
+      category: category,
+      co2Factor: co2Per100g,
+    );
   }
 
   double _getEnergyCo2(UserProfile? profile) {
@@ -204,8 +203,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       return;
     }
 
-    final co2Per100g = _selectedFoodProduct?.co2Total;
-    final calculatedCo2 = _getFoodItemCo2(_foodCategory, grams, co2Per100g);
+    final co2Factor =
+        _selectedFoodProduct?.co2Per100g ?? _selectedFoodProduct?.co2Total;
+    final calculatedCo2 = _getFoodItemCo2(_foodCategory, grams, co2Factor);
 
     setState(() {
       _foodEntries.add(
@@ -215,7 +215,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           category: _foodCategory,
           servingSize: _servingSize,
           grams: grams,
-          co2Per100g: co2Per100g,
+          co2Per100g: co2Factor,
           calculatedCo2: calculatedCo2,
           offBarcode: _selectedFoodProduct?.id,
         ),
@@ -455,7 +455,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
         }
       }
     } catch (e) {
-      _showSnackbar('Error saving log: $e');
+      if (mounted) {
+        ErrorPopup.showFromException(context, e);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -775,12 +777,10 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
 
   Widget _buildFoodTab() {
     final gramsVal = double.tryParse(_foodGramsCtrl.text.trim()) ?? 0.0;
+    final co2Factor =
+        _selectedFoodProduct?.co2Per100g ?? _selectedFoodProduct?.co2Total;
     final liveMealCo2 = gramsVal > 0
-        ? _getFoodItemCo2(
-            _foodCategory,
-            gramsVal,
-            _selectedFoodProduct?.co2Total,
-          )
+        ? _getFoodItemCo2(_foodCategory, gramsVal, co2Factor)
         : 0.0;
 
     return SingleChildScrollView(
@@ -819,7 +819,16 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               _foodNameCtrl.text = selection.name;
               _selectedFoodProduct = selection;
               if (selection.fallbackCategory != null) {
-                setState(() => _foodCategory = selection.fallbackCategory!);
+                final normalized = EmissionFactors.normalizeCategory(
+                  selection.fallbackCategory,
+                );
+                setState(() => _foodCategory = normalized);
+              }
+              if (selection.servingSizeG != null &&
+                  selection.servingSizeG! > 0) {
+                _foodGramsCtrl.text = selection.servingSizeG!
+                    .toInt()
+                    .toString();
               }
             },
             fieldViewBuilder:
@@ -861,19 +870,48 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                       itemCount: options.length,
                       itemBuilder: (context, index) {
                         final option = options.elementAt(index);
+                        final title =
+                            option.nameUrdu != null &&
+                                option.nameUrdu!.isNotEmpty
+                            ? '${option.name} (${option.nameUrdu})'
+                            : option.name;
                         return ListTile(
                           title: Text(
-                            option.name,
+                            title,
                             style: TextStyle(
                               color: AppColors.textPrimary(context),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           subtitle: Text(
-                            option.brand ?? '',
+                            '${option.brand ?? 'Traditional Pakistani'} · ${option.fallbackCategory?.replaceAll('_', ' ') ?? ''}',
                             style: TextStyle(
                               color: AppColors.textSecondary(context),
+                              fontSize: 12,
                             ),
                           ),
+                          trailing: option.ecoScore != null
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Score ${option.ecoScore!.toUpperCase()}',
+                                    style: const TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              : null,
                           onTap: () => onSelected(option),
                         );
                       },
@@ -932,7 +970,13 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            initialValue: _foodCategory,
+            key: ValueKey(
+              'food_cat_${EmissionFactors.foodCategoryFactors.containsKey(_foodCategory) ? _foodCategory : EmissionFactors.normalizeCategory(_foodCategory)}',
+            ),
+            initialValue:
+                EmissionFactors.foodCategoryFactors.containsKey(_foodCategory)
+                ? _foodCategory
+                : EmissionFactors.normalizeCategory(_foodCategory),
             dropdownColor: AppColors.surface(context),
             style: TextStyle(color: AppColors.textPrimary(context)),
             decoration: const InputDecoration(
@@ -947,7 +991,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                   ),
                 )
                 .toList(),
-            onChanged: (v) => setState(() => _foodCategory = v!),
+            onChanged: (v) {
+              if (v != null) {
+                setState(() => _foodCategory = v);
+              }
+            },
           ),
           if (gramsVal > 0) ...[
             const SizedBox(height: 8),
@@ -968,12 +1016,27 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     size: 20,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Meal CO₂ Preview: ${liveMealCo2.toStringAsFixed(2)} kg CO₂e',
-                    style: const TextStyle(
-                      color: AppColors.primaryGreen,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Meal CO₂ Preview: ${liveMealCo2.toStringAsFixed(2)} kg CO₂e',
+                          style: const TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (_selectedFoodProduct != null && co2Factor != null)
+                          Text(
+                            'Using ${_selectedFoodProduct!.source} (${co2Factor > 50 ? (co2Factor / 100).toStringAsFixed(2) : co2Factor.toStringAsFixed(2)} kg CO₂e/kg)',
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 11,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
