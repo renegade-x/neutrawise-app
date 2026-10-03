@@ -1038,7 +1038,8 @@ class GamificationRepository {
       debugPrint('Error loading challenge qualifications: $e');
     }
     _memoryDailyProgress.forEach((key, perChallenge) {
-      if (!key.startsWith('$userId:') || !perChallenge.containsKey(challengeId)) {
+      if (!key.startsWith('$userId:') ||
+          !perChallenge.containsKey(challengeId)) {
         return;
       }
       final date = key.substring(userId.length + 1);
@@ -1307,13 +1308,19 @@ class GamificationRepository {
           .maybeSingle();
 
       if (existing == null) {
-        await _client.from('badges').upsert({
-          'user_id': userId,
-          'badge_name': badgeName,
-          'badge_tier': tier,
-          'category': category,
-          'earned_at': DateTime.now().toIso8601String(),
-        }, onConflict: 'user_id, badge_name', ignoreDuplicates: true);
+        await _client
+            .from('badges')
+            .upsert(
+              {
+                'user_id': userId,
+                'badge_name': badgeName,
+                'badge_tier': tier,
+                'category': category,
+                'earned_at': DateTime.now().toIso8601String(),
+              },
+              onConflict: 'user_id, badge_name',
+              ignoreDuplicates: true,
+            );
       } else if (existing['badge_tier'] != tier) {
         await _client
             .from('badges')

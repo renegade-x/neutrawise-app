@@ -57,19 +57,22 @@ void main() {
       expect(step.daysPassed, 0);
     });
 
-    test('reaching required days completes (and does not fail on last day)', () {
-      final step = applyAuditDay(
-        daysPassed: 6,
-        qualified: true,
-        consecutive: true,
-        strategy: 'LOG_FIELD_ZERO',
-        requiredDays: 7,
-        windowDays: 7,
-        dayNumber: 7,
-      );
-      expect(step.completed, isTrue);
-      expect(step.failed, isFalse);
-    });
+    test(
+      'reaching required days completes (and does not fail on last day)',
+      () {
+        final step = applyAuditDay(
+          daysPassed: 6,
+          qualified: true,
+          consecutive: true,
+          strategy: 'LOG_FIELD_ZERO',
+          requiredDays: 7,
+          windowDays: 7,
+          dayNumber: 7,
+        );
+        expect(step.completed, isTrue);
+        expect(step.failed, isFalse);
+      },
+    );
 
     test('one-day challenge qualified on its only day completes', () {
       final step = applyAuditDay(
@@ -106,7 +109,11 @@ void main() {
         lastAudited: null,
         lastDayToAudit: DateTime(2026, 10, 3),
       );
-      expect(days.map(formatAuditDate), ['2026-10-01', '2026-10-02', '2026-10-03']);
+      expect(days.map(formatAuditDate), [
+        '2026-10-01',
+        '2026-10-02',
+        '2026-10-03',
+      ]);
     });
 
     test('resumes the day after the last audited day', () {

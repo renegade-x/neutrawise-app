@@ -48,17 +48,14 @@ class LeaderboardRepository {
 
       final List<dynamic> response = await _client.rpc(
         'get_leaderboard',
-        params: {
-          'p_type': rpcType,
-          'p_city': city?.trim(),
-          'p_limit': limit,
-        },
+        params: {'p_type': rpcType, 'p_city': city?.trim(), 'p_limit': limit},
       );
 
       final entries = response
           .map(
-            (row) =>
-                LeaderboardEntry.fromJson(Map<String, dynamic>.from(row as Map)),
+            (row) => LeaderboardEntry.fromJson(
+              Map<String, dynamic>.from(row as Map),
+            ),
           )
           .toList();
 
