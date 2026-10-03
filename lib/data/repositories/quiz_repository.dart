@@ -224,7 +224,9 @@ class QuizRepository {
         await _supabase.from('quizzes').upsert({
           'id': _toUuid(attempt.quizId),
           'title': 'Bi-Weekly Eco Quiz',
-        });
+          'topic': 'Sustainability & Carbon Science',
+          'questions': [],
+        }, onConflict: 'id', ignoreDuplicates: true);
       } catch (_) {}
 
       await _supabase.from('user_quizzes').upsert({
@@ -284,9 +286,10 @@ class QuizRepository {
           await _supabase.from('badges').upsert({
             'user_id': userId,
             'badge_name': 'Quiz Whiz 🧠',
+            'badge_tier': 'Special',
             'category': 'Special',
             'earned_at': DateTime.now().toIso8601String(),
-          }, onConflict: 'user_id, badge_name');
+          }, onConflict: 'user_id, badge_name', ignoreDuplicates: true);
         } catch (_) {}
       }
     }

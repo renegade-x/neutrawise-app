@@ -1197,6 +1197,9 @@ class GamificationRepository {
     };
   }
 
+  /// Awards a badge. One row per (user, badge_name): a new badge is inserted,
+  /// and an existing badge is only touched when its tier is upgraded
+  /// (e.g. Bronze -> Silver), so earned_at is never reset by repeat calls.
   Future<void> awardBadge(
     String userId,
     String badgeName,
@@ -1204,13 +1207,27 @@ class GamificationRepository {
     String category,
   ) async {
     try {
-      await _client.from('badges').upsert({
-        'user_id': userId,
-        'badge_name': badgeName,
-        'tier': tier,
-        'category': category,
-        'earned_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id, badge_name');
+      final existing = await _client
+          .from('badges')
+          .select('id, badge_tier')
+          .eq('user_id', userId)
+          .eq('badge_name', badgeName)
+          .maybeSingle();
+
+      if (existing == null) {
+        await _client.from('badges').upsert({
+          'user_id': userId,
+          'badge_name': badgeName,
+          'badge_tier': tier,
+          'category': category,
+          'earned_at': DateTime.now().toIso8601String(),
+        }, onConflict: 'user_id, badge_name', ignoreDuplicates: true);
+      } else if (existing['badge_tier'] != tier) {
+        await _client
+            .from('badges')
+            .update({'badge_tier': tier, 'category': category})
+            .eq('id', existing['id']);
+      }
     } catch (e) {
       debugPrint('Error awarding badge $badgeName: $e');
     }
