@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/providers/auth_provider.dart';
+import 'package:neutrawise/data/repositories/gamification_repository.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/data/repositories/activity_repository.dart';
 import 'package:neutrawise/domain/models/daily_log.dart';
@@ -67,7 +68,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final userId = ref.read(authProvider).user?.id;
     if (userId != null) {
       _subscribeToBadges(userId);
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _auditChallenges(userId),
+      );
     }
+  }
+
+  /// Settles challenge days that elapsed since the app was last opened.
+  Future<void> _auditChallenges(String userId) async {
+    try {
+      final completed = await ref
+          .read(gamificationRepositoryProvider)
+          .auditPendingChallenges(userId);
+      if (!mounted) return;
+      ref.invalidate(activeChallengesProvider(userId));
+      ref.invalidate(userChallengesProvider(userId));
+      if (completed.isEmpty) return;
+      ref.invalidate(userProfileProvider(userId));
+      ref.invalidate(userBadgesProvider(userId));
+      final rootContext = rootNavigatorKey.currentContext;
+      if (rootContext == null) return;
+      for (final c in completed) {
+        if (!rootContext.mounted) return;
+        CelebrationModal.showChallengeComplete(
+          rootContext,
+          c['name'] as String? ?? 'Eco Challenge',
+          c['xp_earned'] as int? ?? 100,
+        );
+      }
+    } catch (_) {}
   }
 
   void _subscribeToBadges(String userId) {

@@ -414,10 +414,14 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       );
       await ref.read(userRepositoryProvider).saveUserProfile(updatedProfile);
 
-      // Automatic Challenge Progress Evaluation Engine
-      final completedChallenges = await ref
-          .read(gamificationRepositoryProvider)
-          .evaluateChallengesForUser(user.id, log);
+      // Settle any fully-elapsed days first (after the profile save above, so
+      // challenge XP is added on top of the freshly saved XP), then record
+      // today's qualification flags.
+      final gamificationRepo = ref.read(gamificationRepositoryProvider);
+      final completedChallenges = await gamificationRepo.auditPendingChallenges(
+        user.id,
+      );
+      await gamificationRepo.evaluateChallengesForUser(user.id, log);
 
       if (mounted && context.mounted) {
         ref.invalidate(recentLogsProvider(user.id));

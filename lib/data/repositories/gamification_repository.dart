@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
+import 'package:neutrawise/domain/gamification/challenge_audit.dart';
 
 final gamificationRepositoryProvider = Provider<GamificationRepository>((ref) {
   return GamificationRepository(Supabase.instance.client);
@@ -606,10 +607,14 @@ class GamificationRepository {
       'status': 'in_progress',
       'started_at': now.toIso8601String(),
       'completed_at': null,
+      'last_audited_date': null,
+      'cooldown_ends_at': null,
     };
 
     try {
-      await _client.from('user_challenges').upsert(fullPayload);
+      await _client
+          .from('user_challenges')
+          .upsert(fullPayload, onConflict: 'user_id, challenge_id');
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST204' || e.message.contains('column')) {
         debugPrint(
@@ -627,7 +632,9 @@ class GamificationRepository {
           'started_at': now.toIso8601String(),
           'completed_at': null,
         };
-        await _client.from('user_challenges').upsert(legacyPayload);
+        await _client
+            .from('user_challenges')
+            .upsert(legacyPayload, onConflict: 'user_id, challenge_id');
       } else {
         rethrow;
       }
@@ -779,18 +786,17 @@ class GamificationRepository {
             (catalogDef['duration_days'] as int?) ??
             7;
 
+        // Skip runs whose window is already over; the audit settles them
+        // (completed or failed) so a late-arriving day is never lost here.
         final startedAtStr = userChallenge['started_at'] as String?;
         final startedAt = startedAtStr != null
             ? DateTime.tryParse(startedAtStr)
             : now;
-        final deadlineAt = startedAt?.add(Duration(days: windowDays));
-
-        // Expiration check
-        if (deadlineAt != null && now.isAfter(deadlineAt)) {
-          await _updateUserChallengeSafe(userId, challengeId, {
-            'status': 'failed',
-          });
-          continue;
+        if (startedAt != null) {
+          final lastWindowDay = dateOnly(
+            startedAt,
+          ).add(Duration(days: windowDays - 1));
+          if (todayDate.isAfter(lastWindowDay)) continue;
         }
 
         // Evaluate daily strategy
@@ -817,18 +823,23 @@ class GamificationRepository {
     return completedChallenges;
   }
 
-  /// REVISED MIDNIGHT AUDIT (Option B Spec)
-  /// Advances days_passed and handles completion / failure based on daily qualification records.
-  Future<List<Map<String, dynamic>>> performMidnightAudit(
-    String userId, [
-    DateTime? auditDate,
-  ]) async {
-    final List<Map<String, dynamic>> completedChallenges = [];
+  /// Catch-up challenge audit (idempotent).
+  ///
+  /// Settles every fully-elapsed calendar day (up to yesterday) that has not
+  /// been audited yet for each active challenge, using the qualification flags
+  /// stored in `challenge_daily_progress`. Progress is tracked per run with
+  /// `user_challenges.last_audited_date`, so calling this repeatedly (app open,
+  /// after a log, from several devices) never double-counts a day.
+  ///
+  /// Returns the challenges completed during this call.
+  Future<List<Map<String, dynamic>>> auditPendingChallenges(
+    String userId, {
+    DateTime? now,
+  }) async {
+    final completedChallenges = <Map<String, dynamic>>[];
     try {
-      final targetDate =
-          auditDate ?? DateTime.now().subtract(const Duration(days: 1));
-      final auditDateStr =
-          '${targetDate.year.toString().padLeft(4, '0')}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
+      final today = dateOnly(now ?? DateTime.now());
+      final yesterday = today.subtract(const Duration(days: 1));
 
       final activeChallenges = await getActiveChallenges(userId);
       if (activeChallenges.isEmpty) return completedChallenges;
@@ -872,39 +883,67 @@ class GamificationRepository {
             (catalogDef['category'] as String?) ??
             'Transport';
 
-        int currentDaysPassed = (userChallenge['days_passed'] as int?) ?? 0;
-        final startedAtStr = userChallenge['started_at'] as String?;
-        final startedAt = startedAtStr != null
-            ? DateTime.tryParse(startedAtStr)
-            : DateTime.now();
+        final startedAt = DateTime.tryParse(
+          (userChallenge['started_at'] as String?) ?? '',
+        );
+        if (startedAt == null) continue;
+        final startDay = dateOnly(startedAt);
 
-        // Read qualification for audit date (false if no record logged)
-        final qualified = await getDailyChallengeQualification(
+        final lastAuditedStr = userChallenge['last_audited_date'] as String?;
+        final lastAudited = lastAuditedStr != null
+            ? DateTime.tryParse(lastAuditedStr)
+            : null;
+
+        final pending = pendingAuditDays(
+          startedAt: startedAt,
+          lastAudited: lastAudited,
+          lastDayToAudit: yesterday,
+        );
+        if (pending.isEmpty) continue;
+
+        // One query for the whole range of qualification flags.
+        final qualifiedByDate = await _getQualificationsInRange(
           userId: userId,
           challengeId: challengeId,
-          date: auditDateStr,
+          from: pending.first,
+          to: pending.last,
         );
 
-        if (qualified) {
-          currentDaysPassed += 1;
-        } else if (isConsecutive || strategy == 'APP_BEHAVIOR') {
-          currentDaysPassed = 0;
+        var daysPassed = (userChallenge['days_passed'] as int?) ?? 0;
+        var completed = false;
+        var failed = false;
+        DateTime? lastProcessed;
+
+        for (final day in pending) {
+          final step = applyAuditDay(
+            daysPassed: daysPassed,
+            qualified: qualifiedByDate[formatAuditDate(day)] ?? false,
+            consecutive: isConsecutive,
+            strategy: strategy,
+            requiredDays: requiredDays,
+            windowDays: windowDays,
+            dayNumber: day.difference(startDay).inDays + 1,
+          );
+          daysPassed = step.daysPassed;
+          lastProcessed = day;
+          if (step.completed) {
+            completed = true;
+            break;
+          }
+          if (step.failed) {
+            failed = true;
+            break;
+          }
         }
-        // Non-consecutive + not qualified: no change to currentDaysPassed
 
-        final progressPercent = min(
-          100,
-          ((currentDaysPassed / requiredDays) * 100).toInt(),
-        );
+        final lastProcessedStr = formatAuditDate(lastProcessed!);
 
-        if (currentDaysPassed >= requiredDays) {
-          // CHALLENGE COMPLETED!
+        if (completed) {
           final previousCompletions = await _getCompletionCount(
             userId,
             challengeId,
           );
           final completionNumber = previousCompletions + 1;
-
           final decayedXP = GamificationEngine.calculateDecayedXP(
             baseXP,
             completionNumber,
@@ -914,30 +953,34 @@ class GamificationRepository {
             completionNumber: completionNumber,
             durationDays: windowDays,
           );
-          final cooldownEndsAt = DateTime.now().add(
-            Duration(days: cooldownDays),
-          );
+          final nowTs = DateTime.now();
 
-          await _updateUserChallengeSafe(userId, challengeId, {
-            'days_passed': currentDaysPassed,
+          // Only the caller that flips in_progress -> completed awards XP, so
+          // concurrent audits (two devices) cannot pay the reward twice.
+          final won = await _claimChallengeCompletion(userId, challengeId, {
+            'days_passed': daysPassed,
             'progress_percent': 100,
             'status': 'completed',
-            'completed_at': DateTime.now().toIso8601String(),
-            'cooldown_ends_at': cooldownEndsAt.toIso8601String(),
+            'completed_at': nowTs.toIso8601String(),
+            'cooldown_ends_at': nowTs
+                .add(Duration(days: cooldownDays))
+                .toIso8601String(),
             'completion_number': completionNumber,
             'xp_earned': decayedXP,
+            'last_audited_date': lastProcessedStr,
           });
+          if (!won) continue;
 
           try {
             await _client.from('challenge_completions').insert({
               'user_id': userId,
               'challenge_id': challengeId,
-              'completed_at': DateTime.now().toIso8601String(),
+              'completed_at': nowTs.toIso8601String(),
               'xp_awarded': decayedXP,
               'completion_num': completionNumber,
             });
           } catch (e) {
-            debugPrint('Silent fallback recording challenge_completion: $e');
+            debugPrint('Error recording challenge completion: $e');
           }
 
           await _awardChallengeXpToUser(userId, decayedXP);
@@ -952,26 +995,78 @@ class GamificationRepository {
             'xp_earned': decayedXP,
           });
         } else {
+          final progressPercent = min(
+            100,
+            ((daysPassed / requiredDays) * 100).toInt(),
+          );
           await _updateUserChallengeSafe(userId, challengeId, {
-            'days_passed': currentDaysPassed,
+            'days_passed': daysPassed,
             'progress_percent': progressPercent,
+            'last_audited_date': lastProcessedStr,
+            if (failed) 'status': 'failed',
           });
-        }
-
-        // Window Expiration Check
-        if (startedAt != null && currentDaysPassed < requiredDays) {
-          final daysSpent = DateTime.now().difference(startedAt).inDays;
-          if (daysSpent > windowDays) {
-            await _updateUserChallengeSafe(userId, challengeId, {
-              'status': 'failed',
-            });
-          }
         }
       }
     } catch (e) {
-      debugPrint('Error performing midnight audit: $e');
+      debugPrint('Error auditing challenges: $e');
     }
     return completedChallenges;
+  }
+
+  /// Qualification flags (date string -> qualified) for one challenge over an
+  /// inclusive date range. In-memory flags (written this session) win over the
+  /// database in case a network write failed.
+  Future<Map<String, bool>> _getQualificationsInRange({
+    required String userId,
+    required String challengeId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final result = <String, bool>{};
+    try {
+      final List<dynamic> rows = await _client
+          .from('challenge_daily_progress')
+          .select('date, qualified')
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId)
+          .gte('date', formatAuditDate(from))
+          .lte('date', formatAuditDate(to));
+      for (final r in rows) {
+        result[r['date'] as String] = r['qualified'] as bool? ?? false;
+      }
+    } catch (e) {
+      debugPrint('Error loading challenge qualifications: $e');
+    }
+    _memoryDailyProgress.forEach((key, perChallenge) {
+      if (!key.startsWith('$userId:') || !perChallenge.containsKey(challengeId)) {
+        return;
+      }
+      final date = key.substring(userId.length + 1);
+      result[date] = perChallenge[challengeId]!;
+    });
+    return result;
+  }
+
+  /// Atomically marks a challenge run completed. Returns true only for the
+  /// caller that changed the row from `in_progress`.
+  Future<bool> _claimChallengeCompletion(
+    String userId,
+    String challengeId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final List<dynamic> updated = await _client
+          .from('user_challenges')
+          .update(data)
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId)
+          .eq('status', 'in_progress')
+          .select('id');
+      return updated.isNotEmpty;
+    } catch (e) {
+      debugPrint('Error completing challenge $challengeId: $e');
+      return false;
+    }
   }
 
   Future<void> _updateUserChallengeSafe(
@@ -1014,15 +1109,12 @@ class GamificationRepository {
 
   Future<int> _getCompletionCount(String userId, String challengeId) async {
     try {
-      final response = await _client
-          .from('user_challenges')
-          .select('completion_number')
+      final List<dynamic> rows = await _client
+          .from('challenge_completions')
+          .select('id')
           .eq('user_id', userId)
-          .eq('challenge_id', challengeId)
-          .maybeSingle();
-      if (response != null && response['completion_number'] != null) {
-        return response['completion_number'] as int;
-      }
+          .eq('challenge_id', challengeId);
+      return rows.length;
     } catch (_) {}
     return 0;
   }
