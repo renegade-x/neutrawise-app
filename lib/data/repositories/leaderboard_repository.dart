@@ -26,110 +26,51 @@ class LeaderboardRepository {
 
   LeaderboardRepository(this._client);
 
+  /// Fetches a leaderboard through the `get_leaderboard` database function.
+  ///
+  /// The function returns only public leaderboard fields (name, avatar, xp,
+  /// level, rank), so other users' profiles and logs are never readable
+  /// directly from the client.
   Future<List<LeaderboardEntry>> getLeaderboard({
     required String type,
     String? city,
     int limit = 100,
   }) async {
     try {
-      if (type == 'global') {
-        final List<dynamic> response = await _client
-            .from('users')
-            .select('id, name, avatar_url, xp, level')
-            .order('xp', ascending: false)
-            .limit(limit);
+      // 'friends' has no data in v1 and falls back to global.
+      final rpcType = (type == 'city' || type == 'weekly_sprint')
+          ? type
+          : 'global';
 
-        return response.asMap().entries.map((entry) {
-          final index = entry.key;
-          final json = Map<String, dynamic>.from(entry.value);
-          json['rank'] = index + 1;
-          return LeaderboardEntry.fromJson(json);
-        }).toList();
-      } else if (type == 'city') {
-        if (city == null || city.trim().isEmpty) return [];
-        final cleanCity = city.trim();
-        final List<dynamic> response = await _client
-            .from('users')
-            .select('id, name, avatar_url, xp, level')
-            .ilike('city', cleanCity)
-            .order('xp', ascending: false)
-            .limit(limit);
+      if (rpcType == 'city' && (city == null || city.trim().isEmpty)) {
+        return [];
+      }
 
-        return response.asMap().entries.map((entry) {
-          final index = entry.key;
-          final json = Map<String, dynamic>.from(entry.value);
-          json['rank'] = index + 1;
-          return LeaderboardEntry.fromJson(json);
-        }).toList();
-      } else if (type == 'weekly_sprint') {
-        // Calculate start of current week (Monday)
-        final now = DateTime.now();
-        final daysToMonday = now.weekday - 1;
-        final monday = now.subtract(Duration(days: daysToMonday));
-        final startOfWeek = DateTime(
-          monday.year,
-          monday.month,
-          monday.day,
-        ).toIso8601String().substring(0, 10);
+      final List<dynamic> response = await _client.rpc(
+        'get_leaderboard',
+        params: {
+          'p_type': rpcType,
+          'p_city': city?.trim(),
+          'p_limit': limit,
+        },
+      );
 
-        // Fetch logs for this week
-        final List<dynamic> logs = await _client
-            .from('daily_logs')
-            .select('user_id, xp_earned, users(name, avatar_url, level)')
-            .gte('date', startOfWeek);
+      final entries = response
+          .map(
+            (row) =>
+                LeaderboardEntry.fromJson(Map<String, dynamic>.from(row as Map)),
+          )
+          .toList();
 
-        // Aggregate in a background isolate asynchronously to prevent main-thread blockage
-        final List<LeaderboardEntry> sprintLeaderboard = await compute(
-          _aggregateWeeklySprintLogs,
-          logs,
-        );
-
-        if (sprintLeaderboard.isEmpty) {
-          // Fallback to global leaderboard if no logs logged this week
-          return await getLeaderboard(type: 'global', limit: limit);
-        }
-
-        return sprintLeaderboard;
-      } else {
-        // Friends (Mutual follow network, empty in v1, fallback to global)
+      // Fall back to the global board if nobody has logged this week.
+      if (rpcType == 'weekly_sprint' && entries.isEmpty) {
         return await getLeaderboard(type: 'global', limit: limit);
       }
+
+      return entries;
     } catch (e) {
-      // In case of error, return empty list
+      debugPrint('Error loading leaderboard ($type): $e');
       return [];
     }
   }
-}
-
-List<LeaderboardEntry> _aggregateWeeklySprintLogs(List<dynamic> logs) {
-  final Map<String, Map<String, dynamic>> userAggregates = {};
-  for (var log in logs) {
-    final userId = log['user_id'] as String;
-    final xpEarned = log['xp_earned'] as int? ?? 0;
-    final userData = log['users'] as Map<String, dynamic>?;
-
-    if (userData == null) continue;
-
-    if (!userAggregates.containsKey(userId)) {
-      userAggregates[userId] = {
-        'id': userId,
-        'name': userData['name'],
-        'avatar_url': userData['avatar_url'],
-        'level': userData['level'] ?? 1,
-        'xp': 0,
-      };
-    }
-    userAggregates[userId]!['xp'] =
-        (userAggregates[userId]!['xp'] as int) + xpEarned;
-  }
-
-  final sortedList = userAggregates.values.toList()
-    ..sort((a, b) => (b['xp'] as int).compareTo(a['xp'] as int));
-
-  return sortedList.asMap().entries.map((entry) {
-    final index = entry.key;
-    final json = entry.value;
-    json['rank'] = index + 1;
-    return LeaderboardEntry.fromJson(json);
-  }).toList();
 }
