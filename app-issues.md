@@ -7,7 +7,8 @@ Error popups :
 
 Activity log: 
 Food suggestions should appear as you type and user can select from the appearing options (Food API configuration) 
-Build Pakistani food database
+Extend Pakistani food database
+
 
 Quiz:
 Quiz should only be taken once in 48 hours (time not fixed) (hide quiz card on days when its not available and after completion)
@@ -27,3 +28,10 @@ When a user submits an activity log and it is pushed to the database, are subseq
 Features:
 Forgot Password
 Google, Apple sign in
+
+Issues:
+For the profile setup while signing in, there is no option to cancel, go back to the sign in screen and log in instead
+
+
+Follow ups:
+Is the daily activity log sent entirely once per day and edited as user adds to it or is each additional log sent separately?
