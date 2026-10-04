@@ -254,6 +254,20 @@ class UserRepository {
     return Map<String, dynamic>.from(response as Map);
   }
 
+  /// Reports the device's UTC offset so scheduled notifications (daily
+  /// reminder, streak warning, weekly summary, quiz) arrive in local time.
+  /// Failures are ignored; the server falls back to a country default.
+  Future<void> reportUtcOffset() async {
+    try {
+      await _client.rpc(
+        'set_my_utc_offset',
+        params: {'p_minutes': DateTime.now().timeZoneOffset.inMinutes},
+      );
+    } catch (e) {
+      debugPrint('Could not report UTC offset: $e');
+    }
+  }
+
   /// Awards quiz or challenge XP. The server pays each [key] only once.
   Future<Map<String, dynamic>> awardXp({
     required String source,

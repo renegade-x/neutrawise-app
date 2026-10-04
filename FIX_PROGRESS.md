@@ -9,7 +9,7 @@ Verification: `flutter test` and `dart analyze` could NOT be run in the assistan
 - [x] **Phase 3 – Challenges actually complete:** idempotent catch-up audit (`auditPendingChallenges`), `challenge_completions` table created, re-enroll fixed, completion XP claimed once. (migration `20261003213756`).
 - [x] **Phase 4 – Server-side XP/streak integrity:** `submit_log_rewards` + `award_xp` RPCs, `xp_ledger`, column-level lockdown of XP/level/streak columns. (migration `20261004062723`)
 - [x] **Phase 5 – Calculation bugs:** logged transport mode factor; unconfirmed energy counts baseline; energy confirmation no longer inferred from CO2 > 0. (code only)
-- [ ] **Phase 6 – Push infrastructure:** pg_net/pg_cron, deploy edge function (JWT verified), replace placeholder URLs, trigger search_path.
+- [x] **Phase 6 – Push infrastructure:** pg_net + pg_cron + Vault secret, secured edge function deployed, fixed triggers, 15-minute local-time dispatcher, leaderboard overtakes, realtime publication for badges. (migration `20261004132839`). Needs OneSignal secrets from you (see below).
 - [ ] **Phase 7 – Hygiene:** untrack supabase/.temp, .gitignore .env, migration naming, indexes (users.xp/city), avatars to Storage, deep-link scheme, release signing, leaked-password protection.
 - [ ] **Phase 8 – Tests/a11y/observability.**
 
@@ -40,3 +40,17 @@ Verification: `flutter test` and `dart analyze` could NOT be run in the assistan
 ## Phase 5 changes
 - `CO2Calculator`: private-vehicle trips (car/ev/motorcycle) use the profile factor only when that is the user's registered vehicle; otherwise a sensible default for the mode. Unconfirmed energy now uses the baseline (was 0, which made partial logs look far below baseline). `GamificationEngine.isEnergyConfirmed` now requires an explicit confirmation or a deviation (it used to treat energy CO2 > 0 as confirmed, which would now always be true).
 - Tests: new transport-mode tests, updated partial-log expectation, `energy_confirmation_test.dart`, `profile_save_columns_test.dart`.
+
+## Phase 6 changes
+- DB: extensions `pg_net`, `pg_cron`; Vault secret `push_webhook_secret` (generated in-database); `verify_push_secret` (service_role only); `send_push(type, user, data)` (internal); triggers `on_level_up`, `on_badge_earned`, `on_challenge_complete`, `on_streak_milestone` rewritten (real URL, no `app.jwt_secret`, pinned search_path, correct `net.http_post` argument names - the old `payload :=` argument never existed); `users.utc_offset_minutes` + `set_my_utc_offset()`; tables `push_log` (dedupe) and `leaderboard_snapshot`; `dispatch_scheduled_push()` and `dispatch_leaderboard_overtakes()` run by cron job `push_dispatch_15min` (`*/15 * * * *`). Old placeholder cron jobs removed. `badges` added to the `supabase_realtime` publication (dashboard badge celebration never received events before).
+- Scheduling (user-local time, each at most once per local day, 60-minute catch-up window): daily log reminder 20:00, final log warning 22:30 (streak > 0, bypasses quiet hours), challenge reminder 12:00, weekly summary Sunday 18:00, quiz Tue/Fri 09:00. Quiet hours respected for everything except the streak warning. Overtakes: max 3/day. Local time = UTC + `utc_offset_minutes` (falls back to +5h for PK users, UTC otherwise).
+- Edge function `schedule_push_notification` (deployed, version 1, verify_jwt=false): rejects calls without the Vault secret (401), validates type and user id, honours notification preferences, targets OneSignal by external id (`include_aliases.external_id`, matches `OneSignal.login(userId)`), mock mode when OneSignal secrets are missing.
+- Code: `UserRepository.reportUtcOffset()` called when the dashboard opens.
+- Removed `supabase/supabase_setup_fix.sql`: it recreated the public `USING (true)` policies on `users`/`daily_logs` (the Phase 2 leak) and used the old trigger code. Recover from git history if ever needed.
+- Verified live: valid call -> 200 (mock), wrong secret -> 401, cron fired on schedule and sent the Sunday summary, dispatcher/quiet-hours/dedupe/overtake/cap/trigger tests passed in rolled-back transactions.
+
+## Your action items for push (cannot be done from here)
+1. In Supabase Dashboard > Edge Functions > Secrets add `ONESIGNAL_APP_ID` and `ONESIGNAL_API_KEY` (until then the function runs in mock mode and no real push is sent).
+2. Make sure the Flutter build has the OneSignal app id (`lib/config/environment.dart`).
+3. If you redeploy the function with the CLI, use `--no-verify-jwt` or the database calls will get 401.
+4. Known small gaps: `streak_expiration` is not scheduled separately (the 22:30 final warning covers it); a streak that resets and re-reaches 7+ days re-sends the milestone push even though XP is paid once.

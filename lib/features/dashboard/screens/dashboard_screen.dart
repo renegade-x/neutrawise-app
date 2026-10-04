@@ -68,9 +68,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final userId = ref.read(authProvider).user?.id;
     if (userId != null) {
       _subscribeToBadges(userId);
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _auditChallenges(userId),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _auditChallenges(userId);
+        ref.read(userRepositoryProvider).reportUtcOffset();
+      });
     }
   }
 
