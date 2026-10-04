@@ -190,59 +190,81 @@ class UserRepository {
     return streak > 1 ? streak - 1 : 0;
   }
 
-  Future<void> saveUserProfile(UserProfile profile) async {
-    final json = profile.toJson();
+  /// Columns that only the server may change (XP, level, streaks, CO2 totals).
+  /// They are updated through [submitLogRewards] / [awardXp]; direct client
+  /// writes are rejected by database privileges.
+  static const Set<String> serverManagedColumns = {
+    'xp',
+    'lifetime_xp',
+    'monthly_xp',
+    'level',
+    'current_streak',
+    'streak_days',
+    'longest_streak',
+    'full_log_streak_days',
+    'last_log_date',
+    'streak_freeze_held',
+    'streak_freeze_queued',
+    'streak_freeze_count',
+    'days_active',
+    'total_co2_saved',
+    'last_daily_xp_date',
+    'daily_xp_from_log',
+    'daily_xp_from_quiz',
+  };
+
+  /// Profile fields a client is allowed to save (everything except the
+  /// server-managed columns above).
+  @visibleForTesting
+  static Map<String, dynamic> editableProfileJson(UserProfile profile) {
+    final json = Map<String, dynamic>.from(profile.toJson());
+    json.removeWhere((key, _) => serverManagedColumns.contains(key));
     if (profile.createdAt == null) {
       json.remove('created_at');
     }
+    return json;
+  }
 
+  Future<void> saveUserProfile(UserProfile profile) async {
     try {
-      await _client.from('users').upsert(json);
+      await _client.from('users').upsert(editableProfileJson(profile));
     } catch (e) {
-      if (e is PostgrestException && e.code == 'PGRST204') {
-        final sanitized = Map<String, dynamic>.from(json);
-        sanitized.remove('daily_xp_from_log');
-        sanitized.remove('daily_xp_from_quiz');
-        sanitized.remove('last_daily_xp_date');
-        sanitized.remove('streak_freeze_queued');
-
-        try {
-          await _client.from('users').upsert(sanitized);
-        } catch (retryError) {
-          final Map<String, dynamic> minimal = {
-            'id': profile.id,
-            'name': profile.name,
-            'current_streak': profile.currentStreak,
-            'streak_days': profile.streakDays,
-            'days_active': profile.daysActive,
-            'xp': profile.effectiveXp,
-            'level': profile.level,
-          };
-          if (profile.lastLogDate != null) {
-            minimal['last_log_date'] = profile.lastLogDate;
-          }
-          try {
-            await _client.from('users').upsert(minimal);
-          } catch (e2) {
-            // Ultra minimal fallback with only base legacy fields
-            final ultraMinimal = {
-              'id': profile.id,
-              'name': profile.name,
-              'xp': profile.effectiveXp,
-              'level': profile.level,
-              'current_streak': profile.currentStreak,
-            };
-            try {
-              await _client.from('users').upsert(ultraMinimal);
-            } catch (e3) {
-              debugPrint('Failed to save ultra minimal user profile: $e3');
-            }
-          }
-        }
-      } else {
-        debugPrint('Error saving user profile: $e');
-      }
+      debugPrint('Error saving user profile: $e');
     }
+  }
+
+  /// Applies the rewards for saving a daily log in one atomic server call:
+  /// log XP (replaced per date), streak, streak milestones, freeze handling
+  /// and CO2 saved. Returns the updated server-side progression values.
+  Future<Map<String, dynamic>> submitLogRewards({
+    required String date,
+    required bool isFullLog,
+    required int logXp,
+    required double co2SavedDelta,
+  }) async {
+    final response = await _client.rpc(
+      'submit_log_rewards',
+      params: {
+        'p_date': date,
+        'p_is_full_log': isFullLog,
+        'p_log_xp': logXp,
+        'p_co2_saved_delta': co2SavedDelta,
+      },
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  /// Awards quiz or challenge XP. The server pays each [key] only once.
+  Future<Map<String, dynamic>> awardXp({
+    required String source,
+    required String key,
+    required int amount,
+  }) async {
+    final response = await _client.rpc(
+      'award_xp',
+      params: {'p_source': source, 'p_key': key, 'p_amount': amount},
+    );
+    return Map<String, dynamic>.from(response as Map);
   }
 
   Future<Map<String, dynamic>> getNotificationPreferences(String userId) async {

@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/domain/gamification/quiz_engine.dart';
-import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
 
 final quizRepositoryProvider = Provider<QuizRepository>((ref) {
@@ -249,30 +248,20 @@ class QuizRepository {
       debugPrint('Note: user_quizzes upsert skipped/failed: $e');
     }
 
-    // 2. Award XP to User Profile (Always execute, even if user_quizzes table missing)
+    // 2. Award XP through the server. Each quiz pays out once per user, so
+    //    retaking a quiz (or clearing local data) cannot earn XP again.
     try {
-      final userRepo = ref.read(userRepositoryProvider);
-      final profile = await userRepo.getUserProfile(userId);
-
-      if (profile != null) {
-        final currentLifetimeXp = profile.effectiveXp;
-        final currentMonthlyXp = profile.monthlyXp;
-
-        final newLifetimeXp = currentLifetimeXp + attempt.xpEarned;
-        final newMonthlyXp = currentMonthlyXp + attempt.xpEarned;
-        final newLevel = GamificationEngine.getLevelFromXp(newLifetimeXp);
-
-        final updatedProfile = profile.copyWith(
-          lifetimeXp: newLifetimeXp,
-          monthlyXp: newMonthlyXp,
-          xp: newLifetimeXp,
-          level: newLevel,
-        );
-
-        await userRepo.saveUserProfile(updatedProfile);
+      if (attempt.xpEarned > 0) {
+        await ref
+            .read(userRepositoryProvider)
+            .awardXp(
+              source: 'quiz',
+              key: _toUuid(attempt.quizId),
+              amount: min(attempt.xpEarned, 130),
+            );
       }
     } catch (e) {
-      debugPrint('Error updating user profile XP for quiz: $e');
+      debugPrint('Error awarding quiz XP: $e');
     }
 
     // 3. Check if Quiz Whiz badge is earned (5 perfect quiz scores as per Spec Section 7.2)

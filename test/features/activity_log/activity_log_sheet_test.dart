@@ -4,6 +4,8 @@ import 'package:neutrawise/domain/models/user_profile.dart';
 import 'package:neutrawise/domain/co2_engine/co2_calculator.dart';
 
 void main() {
+  transportModeTests();
+
   group('ActivityLogSheet Engine Integration Tests', () {
     final mockProfile = const UserProfile(
       id: 'test-user-123',
@@ -93,8 +95,10 @@ void main() {
       // Metro CO2: 20km * 0.035 = 0.70 kg
       expect(resultLog.transportCo2, closeTo(0.70, 0.01));
       expect(resultLog.foodCo2, 0.0);
-      expect(resultLog.energyCo2, 0.0);
-      expect(resultLog.totalDailyCo2, closeTo(0.70, 0.01));
+      // Unconfirmed energy still counts the typical-day baseline:
+      // 5.0 kWh * 0.45 = 2.25 kg
+      expect(resultLog.energyCo2, closeTo(2.25, 0.01));
+      expect(resultLog.totalDailyCo2, closeTo(2.95, 0.01));
     });
 
     test(
@@ -146,5 +150,58 @@ void main() {
         expect(resultLog.foodCo2, closeTo(1.13, 0.01));
       },
     );
+  });
+}
+
+void transportModeTests() {
+  group('Transport factor follows the logged mode', () {
+    const busCommuter = UserProfile(
+      id: 'u-bus',
+      name: 'Bus Commuter',
+      primaryTransport: 'bus',
+      transportFactor: 0.089,
+      dailyEnergyBaselineKwh: 5.0,
+      dailyHeatingBaselineCo2: 0.0,
+      gridIntensity: 0.45,
+      totalDailyBaselineCo2: 8.0,
+    );
+    const carOwner = UserProfile(
+      id: 'u-car',
+      name: 'Car Owner',
+      primaryTransport: 'car',
+      transportFactor: 0.30,
+      dailyEnergyBaselineKwh: 5.0,
+      dailyHeatingBaselineCo2: 0.0,
+      gridIntensity: 0.45,
+      totalDailyBaselineCo2: 12.0,
+    );
+
+    DailyLog log(UserProfile p, String mode) => CO2Calculator.processDailyLog(
+      p,
+      '2026-05-24',
+      [TransportEntry(mode: mode, distanceKm: 10.0)],
+      [],
+      [],
+      false,
+      0,
+    );
+
+    test('bus commuter logging a car trip is not given the bus factor', () {
+      // Default medium petrol car: 0.23 kg/km
+      expect(log(busCommuter, 'car').transportCo2, closeTo(2.3, 0.01));
+    });
+
+    test('car owner logging a car trip uses the registered vehicle factor', () {
+      expect(log(carOwner, 'car').transportCo2, closeTo(3.0, 0.01));
+    });
+
+    test('car owner taking a bus uses the bus factor', () {
+      expect(log(carOwner, 'bus').transportCo2, closeTo(0.89, 0.01));
+    });
+
+    test('bus commuter logging an EV trip uses the grid-based EV default', () {
+      // 0.18 kWh/km * 0.45 kg/kWh * 10 km = 0.81 kg
+      expect(log(busCommuter, 'ev').transportCo2, closeTo(0.81, 0.01));
+    });
   });
 }

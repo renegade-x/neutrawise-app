@@ -294,130 +294,67 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
 
       await ref.read(syncManagerProvider).saveLog(log);
 
-      final xpDelta = log.xpEarned - (widget.existingLog?.xpEarned ?? 0);
       final savedDelta =
           log.co2SavedVsBaseline -
           (widget.existingLog?.co2SavedVsBaseline ?? 0.0);
-
-      final now = DateTime.now();
-      final todayDate = DateTime(now.year, now.month, now.day);
       final isFullLog =
           _transportEntries.isNotEmpty &&
           _foodEntries.isNotEmpty &&
           _energyConfirmed;
 
-      int newStreakDays = profile.effectiveStreak;
-      int newFullLogStreakDays = profile.fullLogStreakDays;
-      bool freezeUsed = false;
-
-      if (profile.lastLogDate != null) {
-        final lastLog = DateTime.tryParse(profile.lastLogDate!);
-        if (lastLog != null) {
-          final lastLogDateOnly = DateTime(
-            lastLog.year,
-            lastLog.month,
-            lastLog.day,
-          );
-          final gapDays = todayDate.difference(lastLogDateOnly).inDays;
-
-          if (gapDays == 1) {
-            newStreakDays += 1;
-            if (isFullLog) newFullLogStreakDays += 1;
-          } else if (gapDays > 1) {
-            if (profile.streakFreezeHeld) {
-              freezeUsed = true;
-              newStreakDays += 1;
-              if (isFullLog) newFullLogStreakDays += 1;
-            } else {
-              newStreakDays = 0;
-              newFullLogStreakDays = isFullLog ? 1 : 0;
-            }
-          }
-        }
-      } else {
-        newStreakDays = 0;
-        newFullLogStreakDays = isFullLog ? 1 : 0;
+      // XP, streak, streak milestones, freeze handling and CO2-saved totals
+      // are applied atomically on the server. The server uses its own date,
+      // pays each milestone once, and replaces (not adds to) the XP for this
+      // date when a log is re-saved.
+      Map<String, dynamic>? rewards;
+      try {
+        rewards = await ref
+            .read(userRepositoryProvider)
+            .submitLogRewards(
+              date: date,
+              isFullLog: isFullLog,
+              logXp: log.xpEarned,
+              co2SavedDelta: savedDelta,
+            );
+      } catch (e) {
+        // The log itself is already saved (and queued when offline). Rewards
+        // need a connection, so they are skipped rather than failing the save.
+        debugPrint('Could not apply log rewards: $e');
       }
+      final bool rewardsApplied = rewards != null;
 
-      int daysActive = profile.daysActive;
-      if (profile.createdAt != null) {
-        final signupDateTime = DateTime.tryParse(profile.createdAt!);
-        if (signupDateTime != null) {
-          final signupDate = DateTime(
-            signupDateTime.year,
-            signupDateTime.month,
-            signupDateTime.day,
-          );
-          daysActive = todayDate.difference(signupDate).inDays + 1;
-          if (daysActive < 1) daysActive = 1;
-        }
-      }
-
+      final int newLevel =
+          (rewards?['level'] as num?)?.toInt() ?? profile.level;
+      final int newStreakDays =
+          (rewards?['current_streak'] as num?)?.toInt() ??
+          profile.effectiveStreak;
+      final bool freezeUsed = rewards?['freeze_used'] as bool? ?? false;
+      final bool streakIncreased =
+          rewards?['streak_increased'] as bool? ?? false;
       final isFirstLog = profile.lastLogDate == null;
-      final streakMilestoneResult = await ref
-          .read(gamificationRepositoryProvider)
-          .processStreakMilestonesAndBadges(
-            userId: user.id,
-            streakDays: newStreakDays,
-            level: profile.level,
-            isFirstLog: isFirstLog,
-          );
 
-      final int bonusXp =
-          (streakMilestoneResult['milestoneXpBonus'] as int?) ?? 0;
-      final bool freezeAwarded =
-          streakMilestoneResult['freezeAwarded'] as bool? ?? false;
-      final bool freezeQueued =
-          streakMilestoneResult['freezeQueued'] as bool? ?? false;
-
-      final totalXpToAdd = xpDelta + bonusXp;
-      final newLifetimeXp = profile.effectiveXp + totalXpToAdd;
-      final newMonthlyXp = profile.monthlyXp + totalXpToAdd;
-      final newLevel = GamificationEngine.getLevelFromXp(newLifetimeXp);
-
-      bool finalFreezeHeld = freezeUsed ? false : profile.streakFreezeHeld;
-      bool finalFreezeQueued = profile.streakFreezeQueued;
-
-      if (freezeUsed) {
-        await ref
-            .read(gamificationRepositoryProvider)
-            .awardBadge(user.id, 'Streak Saver 🛡️', 'Special', 'Special');
-      }
-
-      if (freezeAwarded) {
-        finalFreezeHeld = true;
-      }
-      if (freezeQueued) {
-        finalFreezeQueued = true;
-      }
-      if (newLevel >= 4 && finalFreezeQueued) {
-        finalFreezeHeld = true;
-        finalFreezeQueued = false;
-      }
-
-      final updatedProfile = profile.copyWith(
-        lifetimeXp: newLifetimeXp,
-        monthlyXp: newMonthlyXp,
-        xp: newLifetimeXp,
-        level: newLevel,
-        streakDays: newStreakDays,
-        fullLogStreakDays: newFullLogStreakDays,
-        currentStreak: newStreakDays,
-        longestStreak: newStreakDays > profile.longestStreak
-            ? newStreakDays
-            : profile.longestStreak,
-        lastLogDate: date,
-        streakFreezeHeld: finalFreezeHeld,
-        streakFreezeQueued: finalFreezeQueued,
-        daysActive: daysActive,
-        totalCo2Saved: profile.totalCo2Saved + savedDelta,
-      );
-      await ref.read(userRepositoryProvider).saveUserProfile(updatedProfile);
-
-      // Settle any fully-elapsed days first (after the profile save above, so
-      // challenge XP is added on top of the freshly saved XP), then record
-      // today's qualification flags.
+      // Badges (idempotent). Milestone XP was already paid by the server.
       final gamificationRepo = ref.read(gamificationRepositoryProvider);
+      if (rewardsApplied &&
+          (streakIncreased || isFirstLog || newLevel >= 10)) {
+        await gamificationRepo.processStreakMilestonesAndBadges(
+          userId: user.id,
+          streakDays: streakIncreased ? newStreakDays : 0,
+          level: newLevel,
+          isFirstLog: isFirstLog,
+        );
+      }
+      if (freezeUsed) {
+        await gamificationRepo.awardBadge(
+          user.id,
+          'Streak Saver 🛡️',
+          'Special',
+          'Special',
+        );
+      }
+
+      // Settle any fully-elapsed challenge days first, then record today's
+      // qualification flags.
       final completedChallenges = await gamificationRepo.auditPendingChallenges(
         user.id,
       );
@@ -450,7 +387,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Log saved! +${log.xpEarned} XP',
+                rewardsApplied
+                    ? 'Log saved! +${log.xpEarned} XP'
+                    : 'Log saved. XP and streak update once you are online.',
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: AppColors.success,

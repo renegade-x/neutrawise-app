@@ -80,6 +80,37 @@ class CO2Calculator {
     };
   }
 
+  /// Emission factor (kgCO2e/km) for a logged trip.
+  ///
+  /// The profile's own factor (fuel type, engine size, vehicle age, grid
+  /// intensity for EVs) is only valid for the vehicle the user registered. A
+  /// trip in a different private-vehicle mode (e.g. a bus commuter taking a
+  /// car) uses a sensible default for that mode instead of the profile factor.
+  static double _transportFactorFor(UserProfile profile, String mode) {
+    const privateModes = {'car', 'ev', 'motorcycle'};
+    if (!privateModes.contains(mode)) {
+      return EmissionFactors.baseTransportFactors[mode] ?? 0.0;
+    }
+
+    final registered = profile.primaryTransport;
+    // Profiles without a registered mode keep the previous behaviour.
+    if ((registered == null || registered == mode) &&
+        profile.transportFactor != null) {
+      return profile.transportFactor!;
+    }
+
+    switch (mode) {
+      case 'car':
+        return EmissionFactors.baseTransportFactors['car_petrol_medium'] ??
+            0.23;
+      case 'ev':
+        final grid = profile.gridIntensity ?? EmissionFactors.gridIntensityPK;
+        return (EmissionFactors.evEfficiencyKwhPerKm['medium'] ?? 0.18) * grid;
+      default:
+        return EmissionFactors.baseTransportFactors['motorcycle'] ?? 0.10;
+    }
+  }
+
   static DailyLog processDailyLog(
     UserProfile profile,
     String date,
@@ -93,14 +124,7 @@ class CO2Calculator {
     double totalTransportCo2 = 0.0;
     List<TransportEntry> processedTransport = [];
     for (var entry in transportEntries) {
-      double factor = 0.0;
-      if (entry.mode == 'car' ||
-          entry.mode == 'ev' ||
-          entry.mode == 'motorcycle') {
-        factor = profile.transportFactor ?? 0.0;
-      } else {
-        factor = EmissionFactors.baseTransportFactors[entry.mode] ?? 0.0;
-      }
+      final factor = _transportFactorFor(profile, entry.mode);
       final co2 = factor * entry.distanceKm;
       processedTransport.add(entry.copyWith(calculatedCo2: co2));
       totalTransportCo2 += co2;
@@ -120,9 +144,12 @@ class CO2Calculator {
     }
 
     // 3. Calculate Energy CO2
-    double totalEnergyCo2 = 0.0;
+    // Energy always counts: the user's baseline is what they emit on a
+    // typical day. Confirming energy only adds the day's deviations (and
+    // counts the energy category as logged for XP/streak purposes), so an
+    // unconfirmed day is not treated as a zero-energy day.
+    double deltaKwh = 0.0;
     if (energyConfirmed) {
-      double deltaKwh = 0.0;
       for (var deviation in energyDeviations) {
         if (deviation == 'more_than_usual') {
           deltaKwh += 2.0;
@@ -140,18 +167,18 @@ class CO2Calculator {
           deltaKwh -= 1.5;
         }
       }
-
-      final dailyBaselineKwh = profile.dailyEnergyBaselineKwh ?? 0.0;
-      double totalKwh = dailyBaselineKwh + deltaKwh;
-      if (totalKwh < 0) totalKwh = 0.0;
-
-      final gridIntensity =
-          profile.gridIntensity ?? EmissionFactors.gridIntensityPK;
-      final electricityCO2 = totalKwh * gridIntensity;
-
-      totalEnergyCo2 =
-          electricityCO2 + (profile.dailyHeatingBaselineCo2 ?? 0.0);
     }
+
+    final dailyBaselineKwh = profile.dailyEnergyBaselineKwh ?? 0.0;
+    double totalKwh = dailyBaselineKwh + deltaKwh;
+    if (totalKwh < 0) totalKwh = 0.0;
+
+    final gridIntensity =
+        profile.gridIntensity ?? EmissionFactors.gridIntensityPK;
+    final electricityCO2 = totalKwh * gridIntensity;
+
+    final double totalEnergyCo2 =
+        electricityCO2 + (profile.dailyHeatingBaselineCo2 ?? 0.0);
 
     // 4. Totals and baseline
     final baselineCo2 = profile.totalDailyBaselineCo2 ?? 0.0;

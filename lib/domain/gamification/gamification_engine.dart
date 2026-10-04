@@ -306,10 +306,11 @@ class GamificationEngine {
   // --- XP & Multiplier Calculations (Section 3) ---
 
   /// Helper to determine if energy section is confirmed
+  ///
+  /// Energy CO2 is always computed from the user's baseline, so a positive
+  /// energy CO2 says nothing about whether the user actually confirmed it.
   static bool isEnergyConfirmed(DailyLog log) {
-    return log.energyConfirmed ||
-        log.energyCo2 > 0 ||
-        log.energyDeviations.isNotEmpty;
+    return log.energyConfirmed || log.energyDeviations.isNotEmpty;
   }
 
   /// Helper to determine if a daily log is a full log (all 3 categories confirmed)

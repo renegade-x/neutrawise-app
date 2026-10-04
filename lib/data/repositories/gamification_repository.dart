@@ -983,7 +983,12 @@ class GamificationRepository {
             debugPrint('Error recording challenge completion: $e');
           }
 
-          await _awardChallengeXpToUser(userId, decayedXP);
+          await _awardChallengeXpToUser(
+            userId,
+            challengeId,
+            completionNumber,
+            decayedXP,
+          );
           await checkCategoryAndSpecialBadges(userId, category);
 
           completedChallenges.add({
@@ -1120,36 +1125,23 @@ class GamificationRepository {
     return 0;
   }
 
-  Future<void> _awardChallengeXpToUser(String userId, int xpAmount) async {
+  /// Pays challenge XP through the server. The key includes the completion
+  /// number, so each completion of a challenge pays out exactly once.
+  Future<void> _awardChallengeXpToUser(
+    String userId,
+    String challengeId,
+    int completionNumber,
+    int xpAmount,
+  ) async {
     try {
-      final userProfile = await _client
-          .from('users')
-          .select('lifetime_xp, monthly_xp, xp, level')
-          .eq('id', userId)
-          .single();
-
-      final currentLifetimeXp =
-          (userProfile['lifetime_xp'] as int?) ??
-          (userProfile['xp'] as int?) ??
-          0;
-      final currentMonthlyXp = (userProfile['monthly_xp'] as int?) ?? 0;
-
-      final newLifetimeXp = currentLifetimeXp + xpAmount;
-      final newMonthlyXp = currentMonthlyXp + xpAmount;
-      final newLevel = GamificationEngine.getLevelFromXp(newLifetimeXp);
-
-      final updatePayload = <String, dynamic>{
-        'xp': newLifetimeXp,
-        'level': newLevel,
-      };
-      if (userProfile.containsKey('lifetime_xp')) {
-        updatePayload['lifetime_xp'] = newLifetimeXp;
-      }
-      if (userProfile.containsKey('monthly_xp')) {
-        updatePayload['monthly_xp'] = newMonthlyXp;
-      }
-
-      await _client.from('users').update(updatePayload).eq('id', userId);
+      await _client.rpc(
+        'award_xp',
+        params: {
+          'p_source': 'challenge',
+          'p_key': '$challengeId:$completionNumber',
+          'p_amount': xpAmount,
+        },
+      );
     } catch (e) {
       debugPrint('Error awarding challenge XP to user: $e');
     }
