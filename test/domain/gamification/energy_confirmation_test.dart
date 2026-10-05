@@ -48,7 +48,10 @@ void main() {
     });
 
     test('explicit confirmation counts', () {
-      expect(GamificationEngine.isEnergyConfirmed(_log(confirmed: true)), isTrue);
+      expect(
+        GamificationEngine.isEnergyConfirmed(_log(confirmed: true)),
+        isTrue,
+      );
       expect(GamificationEngine.isFullLog(_log(confirmed: true)), isTrue);
     });
 

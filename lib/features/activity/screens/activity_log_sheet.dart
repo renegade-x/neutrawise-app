@@ -335,8 +335,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
 
       // Badges (idempotent). Milestone XP was already paid by the server.
       final gamificationRepo = ref.read(gamificationRepositoryProvider);
-      if (rewardsApplied &&
-          (streakIncreased || isFirstLog || newLevel >= 10)) {
+      if (rewardsApplied && (streakIncreased || isFirstLog || newLevel >= 10)) {
         await gamificationRepo.processStreakMilestonesAndBadges(
           userId: user.id,
           streakDays: streakIncreased ? newStreakDays : 0,
