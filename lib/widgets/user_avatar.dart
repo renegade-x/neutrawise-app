@@ -152,19 +152,23 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarWidget = Container(
-      width: radius * 2,
-      height: radius * 2,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border:
-            border ??
-            Border.all(
-              color: AppColors.primaryGreen.withValues(alpha: 0.3),
-              width: 1.5,
-            ),
+    final avatarWidget = Semantics(
+      label: 'Profile picture',
+      image: true,
+      child: Container(
+        width: radius * 2,
+        height: radius * 2,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border:
+              border ??
+              Border.all(
+                color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+        ),
+        child: _buildAvatarContent(context),
       ),
-      child: _buildAvatarContent(context),
     );
 
     if (!showEditBadge && onTap == null) {

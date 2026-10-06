@@ -58,11 +58,40 @@ class AuthRepository {
     );
   }
 
-  Future<void> deleteAccount() async {
-    final userId = currentUser?.id;
-    if (userId != null) {
-      await Supabase.instance.client.from('users').delete().eq('id', userId);
+  /// Permanently deletes the account and all of its data.
+  ///
+  /// Email/password users must re-enter their password (it is verified before
+  /// anything is deleted). Social-login users have no password to verify.
+  Future<void> deleteAccount({String? password}) async {
+    final user = currentUser;
+    if (user == null) return;
+
+    final isEmailAccount =
+        (user.appMetadata['provider'] as String? ?? 'email') == 'email';
+    if (isEmailAccount) {
+      if (password == null || password.isEmpty || user.email == null) {
+        throw const AuthException(
+          'Enter your password to delete your account.',
+        );
+      }
+      await _auth.signInWithPassword(email: user.email!, password: password);
     }
-    await signOut();
+
+    final client = Supabase.instance.client;
+    try {
+      await client.storage.from('avatars').remove(['${user.id}/avatar.jpg']);
+    } catch (_) {
+      // No stored avatar (or already removed) - nothing to clean up.
+    }
+
+    // Removes the sign-in account; every app table cascades from it.
+    await client.rpc('delete_my_account');
+
+    try {
+      await _auth.signOut(scope: SignOutScope.local);
+    } catch (_) {
+      // The user no longer exists on the server; clearing the local session is
+      // all that matters and the auth listener handles the rest.
+    }
   }
 }
