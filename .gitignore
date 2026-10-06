@@ -60,3 +60,13 @@ app.*.map.json
 local.properties
 supabase/.temp/
 .system_generated/
+# Supabase CLI local state (project refs, versions) - never commit
+supabase/.temp/
+
+# Secrets / signing material
+.env
+.env.*
+!.env.example
+android/key.properties
+*.jks
+*.keystore

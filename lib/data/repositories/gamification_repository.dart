@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neutrawise/domain/models/daily_log.dart';
 import 'package:neutrawise/domain/gamification/gamification_engine.dart';
 import 'package:neutrawise/domain/gamification/challenge_audit.dart';
+import 'package:neutrawise/services/app_logger.dart';
 
 final gamificationRepositoryProvider = Provider<GamificationRepository>((ref) {
   return GamificationRepository(Supabase.instance.client);
@@ -514,7 +515,9 @@ class GamificationRepository {
           };
         }).toList();
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('gamification_repository', err, stack);
+    }
     return defaultChallenges;
   }
 
@@ -527,7 +530,9 @@ class GamificationRepository {
       if (response.isNotEmpty) {
         return List<Map<String, dynamic>>.from(response);
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('gamification_repository', err, stack);
+    }
     return defaultBadgeCatalog;
   }
 
@@ -694,7 +699,9 @@ class GamificationRepository {
         _memoryDailyProgress.putIfAbsent(key, () => {})[challengeId] = val;
         return val;
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('gamification_repository', err, stack);
+    }
 
     return false;
   }
@@ -723,7 +730,9 @@ class GamificationRepository {
         result[cId] = val;
         _memoryDailyProgress.putIfAbsent(key, () => {})[cId] = val;
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('gamification_repository', err, stack);
+    }
 
     return result;
   }
@@ -1121,7 +1130,9 @@ class GamificationRepository {
           .eq('user_id', userId)
           .eq('challenge_id', challengeId);
       return rows.length;
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('gamification_repository', err, stack);
+    }
     return 0;
   }
 

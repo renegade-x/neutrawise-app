@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,12 +33,10 @@ class UserRepository {
       final now = DateTime.now();
 
       // 1. Calculate active days dynamically from signup date
-      bool profileNeedsUpdate = false;
       int calculatedDaysActive = profile.daysActive;
       if (profile.createdAt == null) {
         profile = profile.copyWith(createdAt: now.toIso8601String());
         calculatedDaysActive = 1;
-        profileNeedsUpdate = true;
       } else {
         final signupDateTime = DateTime.tryParse(profile.createdAt!);
         if (signupDateTime != null) {
@@ -96,16 +96,14 @@ class UserRepository {
         }
       }
 
+      // Derived values are computed for display only. Reading a profile never
+      // writes: the server owns XP, level and streak (see submit_log_rewards).
       final calculatedLevel = profile.effectiveLevel;
-      if (calculatedLevel != profile.level) {
-        profileNeedsUpdate = true;
-      }
-
       if (calculatedDaysActive != profile.daysActive ||
           calculatedStreak != profile.currentStreak ||
           calculatedStreak != profile.streakDays ||
           latestLogDate != profile.lastLogDate ||
-          profileNeedsUpdate) {
+          calculatedLevel != profile.level) {
         profile = profile.copyWith(
           daysActive: calculatedDaysActive,
           currentStreak: calculatedStreak,
@@ -116,10 +114,6 @@ class UserRepository {
               : profile.longestStreak,
           lastLogDate: latestLogDate,
         );
-        // Save asynchronously in background so response isn't blocked
-        saveUserProfile(profile).catchError((e) {
-          debugPrint('Background profile sync error: $e');
-        });
       }
 
       return profile;
@@ -266,6 +260,40 @@ class UserRepository {
     } catch (e) {
       debugPrint('Could not report UTC offset: $e');
     }
+  }
+
+  /// Uploads a profile picture to Storage and returns its public URL.
+  /// Each user has a single object (`<userId>/avatar.jpg`) that is replaced on
+  /// every upload; a version query keeps image caches fresh.
+  Future<String> uploadAvatar(String userId, Uint8List bytes) async {
+    final path = '$userId/avatar.jpg';
+    await _client.storage
+        .from('avatars')
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(
+            contentType: 'image/jpeg',
+            upsert: true,
+          ),
+        );
+    final url = _client.storage.from('avatars').getPublicUrl(path);
+    return '$url?v=${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  /// Removes the stored profile picture (best effort).
+  Future<void> deleteAvatar(String userId) async {
+    try {
+      await _client.storage.from('avatars').remove(['$userId/avatar.jpg']);
+    } catch (e) {
+      debugPrint('Error deleting avatar: $e');
+    }
+  }
+
+  /// Returns everything stored about the signed-in user as JSON text.
+  Future<String> exportMyData() async {
+    final data = await _client.rpc('export_my_data');
+    return const JsonEncoder.withIndent('  ').convert(data);
   }
 
   /// Awards quiz or challenge XP. The server pays each [key] only once.

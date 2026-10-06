@@ -6,6 +6,7 @@ import 'package:neutrawise/data/repositories/user_repository.dart';
 import 'package:neutrawise/data/sync/sync_manager.dart';
 
 import 'package:neutrawise/services/push_notification_service.dart';
+import 'package:neutrawise/services/app_logger.dart';
 
 class AuthStateData {
   final bool isAuthenticated;
@@ -167,7 +168,9 @@ class AuthNotifier extends Notifier<AuthStateData> {
     state = state.copyWith(loading: true);
     try {
       await _authRepo.signOut();
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('auth_provider', err, stack);
+    }
     state = AuthStateData.initial().copyWith(
       loading: false,
       hasSeenOnboarding: true,
@@ -210,10 +213,10 @@ class AuthNotifier extends Notifier<AuthStateData> {
     }
   }
 
-  Future<String?> deleteAccount() async {
+  Future<String?> deleteAccount({String? password}) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      await _authRepo.deleteAccount();
+      await _authRepo.deleteAccount(password: password);
       state = AuthStateData.initial().copyWith(
         loading: false,
         hasSeenOnboarding: true,

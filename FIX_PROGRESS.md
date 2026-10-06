@@ -10,8 +10,8 @@ Verification: `flutter test` and `dart analyze` could NOT be run in the assistan
 - [x] **Phase 4 – Server-side XP/streak integrity:** `submit_log_rewards` + `award_xp` RPCs, `xp_ledger`, column-level lockdown of XP/level/streak columns. (migration `20261004062723`)
 - [x] **Phase 5 – Calculation bugs:** logged transport mode factor; unconfirmed energy counts baseline; energy confirmation no longer inferred from CO2 > 0. (code only)
 - [x] **Phase 6 – Push infrastructure:** pg_net + pg_cron + Vault secret, secured edge function deployed, fixed triggers, 15-minute local-time dispatcher, leaderboard overtakes, realtime publication for badges. (migration `20261004132839`). Needs OneSignal secrets from you (see below).
-- [ ] **Phase 7 – Hygiene:** untrack supabase/.temp, .gitignore .env, migration naming, indexes (users.xp/city), avatars to Storage, deep-link scheme, release signing, leaked-password protection.
-- [ ] **Phase 8 – Tests/a11y/observability.**
+- [x] **Phase 7 – Hygiene:** done (see below). Needs your action: leaked-password protection, release keystore, privacy policy.
+- [x] **Phase 8 – Tests/a11y/observability/offline rewards:** done (see below). Sentry itself still to be wired (hook is ready).
 
 ## Phase 1 changes
 - DB: `badges` gets `category`, unique `(user_id, badge_name)`; `quizzes` defaults for NOT NULL columns; `notification_preferences` gets edge-function key columns kept in sync by trigger.
@@ -54,3 +54,17 @@ Verification: `flutter test` and `dart analyze` could NOT be run in the assistan
 2. Make sure the Flutter build has the OneSignal app id (`lib/config/environment.dart`).
 3. If you redeploy the function with the CLI, use `--no-verify-jwt` or the database calls will get 401.
 4. Known small gaps: `streak_expiration` is not scheduled separately (the 22:30 final warning covers it); a streak that resets and re-reaches 7+ days re-sends the milestone push even though XP is paid once.
+
+## Phase 7 + 8 changes
+- DB (migrations `20261006004843`, `20261006004955`): indexes (`users.xp`, lower(city), `daily_logs.date`); public `avatars` bucket (512 KB, jpeg/png/webp, each user may only write inside their own `<userId>/` folder); `delete_my_account()` (removes the auth user, everything cascades) and `export_my_data()`; push streak warning only while the streak is alive; **badge UPDATE policy** (column-limited to tier/category) - found by the regression suite: Phase 1 tier upgrades were silently blocked by RLS.
+- Regression suite `supabase/tests/regression.sql` (rolls back, creates its own users): 40+ assertions covering RLS, forged XP, rewards idempotency, freeze rules, quiz/challenge XP, badges, export, avatar folder rule, anon denial, push secret, account deletion + cascade. Passed live. Manual CI job `.github/workflows/db-tests.yml` (needs one dry run, it replays all migrations on a fresh DB).
+- Code: avatars upload to Storage (public URL stored; legacy base64 avatars and `emoji:`/https avatars still render); account deletion verifies the password for email accounts, removes the avatar and calls `delete_my_account` (before, only the profile row was deleted and the password field was never checked); "Export My Data" tile copies JSON to the clipboard; `getUserProfile` no longer writes on read; `SyncManager` cancels its connectivity listener and queues rewards offline (applied on reconnect; dropped after the server's 1-day window); Open Food Facts: 8 s timeout, one retry, encoded query, ODbL attribution under the search field; `AppLogger` (hook for Sentry) replaces 20 silent `catch (_) {}`; FAB tooltip and avatar semantics labels; Android `allowBackup=false`, unused `com.neutrawise.app` deep-link scheme removed (Android + iOS); release signing reads `android/key.properties` (falls back to debug when absent); `.gitignore` for `supabase/.temp`, `.env*`, keystores and `supabase/.temp` untracked.
+- Not changed on purpose: migration file names (remote history uses `001`-`012`; renaming would desync `supabase db push`, see `supabase/migrations/README.md`); unused `streaks` and `leaderboard_rankings` tables (harmless, drop later if you want); quiz answers still readable by clients.
+
+## Your action items
+1. Supabase Dashboard > Authentication > Providers/Policies: enable **Leaked password protection** (not settable from here).
+2. Add your release keystore: create `android/key.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`). Never commit it (now git-ignored).
+3. Publish a Privacy Policy and link it in the stores and in-app (required by Play / App Store).
+4. Supabase Auth > URL Configuration: keep `io.supabase.neutrawise://login-callback` and `io.supabase.neutrawise://reset-password`; remove any `com.neutrawise.app://` redirect.
+5. For crash reporting add `sentry_flutter`, then set `AppLogger.reporter` once at startup.
+6. Run `dart format .` and commit: the CI "Verify formatting" step is strict and the edits in these patches were written without the formatter.

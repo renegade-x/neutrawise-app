@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -65,6 +65,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _updateAvatar(UserProfile profile, String? newAvatarUrl) async {
     try {
+      if (newAvatarUrl == null) {
+        await ref.read(userRepositoryProvider).deleteAvatar(profile.id);
+      }
       final updated = profile.copyWith(avatarUrl: newAvatarUrl);
       await ref.read(userRepositoryProvider).saveUserProfile(updated);
       ref.invalidate(userProfileProvider(profile.id));
@@ -100,8 +103,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
-        final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-        await _updateAvatar(profile, base64String);
+        // Stored as a file in Storage; only the short public URL goes in the
+        // profile row (no more multi-KB base64 strings in the users table).
+        final url = await ref
+            .read(userRepositoryProvider)
+            .uploadAvatar(profile.id, bytes);
+        await _updateAvatar(profile, url);
       }
     } catch (e) {
       if (mounted) {
@@ -585,6 +592,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Future<void> _exportMyData() async {
+    try {
+      final json = await ref.read(userRepositoryProvider).exportMyData();
+      await Clipboard.setData(ClipboardData(text: json));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your data was copied to the clipboard.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ErrorPopup.showFromException(context, e);
+      }
+    }
+  }
+
   void _showDeleteAccountDialog() {
     final passCtrl = TextEditingController();
     bool isLoading = false;
@@ -651,7 +677,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       setDialogState(() => isLoading = true);
                       final error = await ref
                           .read(authProvider.notifier)
-                          .deleteAccount();
+                          .deleteAccount(password: passCtrl.text);
                       setDialogState(() => isLoading = false);
 
                       if (mounted) {
@@ -1267,6 +1293,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     color: AppColors.textSecondary(context),
                   ),
                   onTap: () => _showChangePasswordDialog(),
+                ),
+                Divider(color: AppColors.divider(context)),
+                ListTile(
+                  title: Text(
+                    'Export My Data',
+                    style: TextStyle(color: AppColors.textPrimary(context)),
+                  ),
+                  subtitle: Text(
+                    'Copy everything we store about you (JSON)',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.download,
+                    size: 16,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  onTap: _exportMyData,
                 ),
                 Divider(color: AppColors.divider(context)),
                 ListTile(

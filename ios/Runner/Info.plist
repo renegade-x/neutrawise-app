@@ -14,7 +14,6 @@
 				<key>CFBundleURLSchemes</key>
 				<array>
 					<string>io.supabase.neutrawise</string>
-					<string>com.neutrawise.app</string>
 				</array>
 			</dict>
 		</array>

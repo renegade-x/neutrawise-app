@@ -21,6 +21,7 @@ import 'package:neutrawise/widgets/celebration_modal.dart';
 import 'package:neutrawise/routing/router.dart';
 import 'package:neutrawise/widgets/charts/emissions_chart.dart';
 import 'package:neutrawise/widgets/user_avatar.dart';
+import 'package:neutrawise/services/app_logger.dart';
 
 class ActiveTabNotifier extends Notifier<int> {
   @override
@@ -97,7 +98,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           c['xp_earned'] as int? ?? 100,
         );
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('dashboard_screen', err, stack);
+    }
   }
 
   void _subscribeToBadges(String userId) {
@@ -124,7 +127,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             },
           );
       _badgesChannel?.subscribe();
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('dashboard_screen', err, stack);
+    }
   }
 
   @override
@@ -133,7 +138,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (_badgesChannel != null) {
       try {
         Supabase.instance.client.removeChannel(_badgesChannel!);
-      } catch (_) {}
+      } catch (err, stack) {
+      AppLogger.error('dashboard_screen', err, stack);
+    }
     }
     super.dispose();
   }
@@ -215,6 +222,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     )
                     .firstOrNull;
                 return FloatingActionButton(
+                  tooltip: "Log today's activity",
                   backgroundColor: AppColors.primaryGreen,
                   child: const Icon(Icons.add, color: Colors.white),
                   onPressed: () {
@@ -234,6 +242,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               },
               orElse: () =>
                   FloatingActionButton(
+                    tooltip: "Log today's activity",
                     backgroundColor: AppColors.primaryGreen,
                     child: const Icon(Icons.add, color: Colors.white),
                     onPressed: () {

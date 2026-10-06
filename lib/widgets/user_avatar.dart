@@ -152,7 +152,10 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarWidget = Container(
+    final avatarWidget = Semantics(
+      label: 'Profile picture',
+      image: true,
+      child: Container(
       width: radius * 2,
       height: radius * 2,
       decoration: BoxDecoration(
@@ -165,6 +168,7 @@ class UserAvatar extends StatelessWidget {
             ),
       ),
       child: _buildAvatarContent(context),
+    ),
     );
 
     if (!showEditBadge && onTap == null) {
