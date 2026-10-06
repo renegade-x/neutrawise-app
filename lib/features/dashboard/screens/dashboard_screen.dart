@@ -139,8 +139,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       try {
         Supabase.instance.client.removeChannel(_badgesChannel!);
       } catch (err, stack) {
-      AppLogger.error('dashboard_screen', err, stack);
-    }
+        AppLogger.error('dashboard_screen', err, stack);
+      }
     }
     super.dispose();
   }

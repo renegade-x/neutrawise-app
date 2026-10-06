@@ -19,7 +19,8 @@ void main() {
   });
 
   test('a failing reporter never throws', () {
-    AppLogger.reporter = (where, error, stack) => throw Exception('reporter down');
+    AppLogger.reporter = (where, error, stack) =>
+        throw Exception('reporter down');
     expect(() => AppLogger.error('x', 'y'), returnsNormally);
   });
 

@@ -70,7 +70,7 @@ class AuthRepository {
         (user.appMetadata['provider'] as String? ?? 'email') == 'email';
     if (isEmailAccount) {
       if (password == null || password.isEmpty || user.email == null) {
-        throw AuthException('Enter your password to delete your account.');
+        throw const AuthException('Enter your password to delete your account.');
       }
       await _auth.signInWithPassword(email: user.email!, password: password);
     }
