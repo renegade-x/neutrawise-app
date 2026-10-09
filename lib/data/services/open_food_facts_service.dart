@@ -400,12 +400,10 @@ class FoodService {
     // Step 3: Fetch Open Food Facts as fallback or supplementary products
     try {
       final uri = Uri.parse(
-        '$_baseUrl?search_terms=$query&search_simple=1&action=process&json=1&page_size=10',
+        '$_baseUrl?search_terms=${Uri.encodeQueryComponent(query)}'
+        '&search_simple=1&action=process&json=1&page_size=10',
       );
-      final response = await http.get(
-        uri,
-        headers: {'User-Agent': 'NeutrawiseApp/1.0'},
-      );
+      final response = await _getWithRetry(uri);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -424,5 +422,26 @@ class FoodService {
     }
 
     return results;
+  }
+
+  /// GET with a timeout and one retry on timeouts, network errors and 5xx
+  /// responses (Open Food Facts is a free service and is occasionally slow).
+  Future<http.Response> _getWithRetry(Uri uri) async {
+    const headers = {'User-Agent': 'NeutrawiseApp/1.0'};
+    const timeout = Duration(seconds: 8);
+    Object? lastError;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await http.get(uri, headers: headers).timeout(timeout);
+        if (response.statusCode < 500) return response;
+        lastError = 'HTTP ${response.statusCode}';
+      } catch (e) {
+        lastError = e;
+      }
+      if (attempt == 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+      }
+    }
+    throw lastError ?? 'Open Food Facts request failed';
   }
 }

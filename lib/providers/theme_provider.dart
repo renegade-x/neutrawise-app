@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:neutrawise/services/app_logger.dart';
 
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
   ThemeModeNotifier.new,
@@ -26,7 +27,9 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
       } else if (savedMode == 'system') {
         state = ThemeMode.system;
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('theme_provider', err, stack);
+    }
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -40,7 +43,9 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
       } else {
         await prefs.setString(_key, 'system');
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('theme_provider', err, stack);
+    }
   }
 
   Future<void> toggleDarkMode(bool isDark) async {

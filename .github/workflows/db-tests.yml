@@ -1,0 +1,27 @@
+name: Database regression tests (manual)
+
+# Runs supabase/tests/regression.sql against a throw-away local Supabase stack.
+# Manual trigger only: it replays every migration from scratch, so run it once to confirm
+# the full history builds cleanly on a fresh database before making it a required check.
+on:
+  workflow_dispatch:
+
+jobs:
+  db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase (applies all migrations)
+        run: |
+          test -f supabase/config.toml || supabase init
+          supabase start
+
+      - name: Run regression suite
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 -f supabase/tests/regression.sql

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/domain/gamification/quiz_engine.dart';
 import 'package:neutrawise/data/repositories/user_repository.dart';
+import 'package:neutrawise/services/app_logger.dart';
 
 final quizRepositoryProvider = Provider<QuizRepository>((ref) {
   return QuizRepository(Supabase.instance.client);
@@ -93,7 +94,9 @@ class QuizRepository {
           attempt = QuizAttemptResult.fromJson(jsonDecode(localData));
           _memoryQuizAttempts[memoryKey] = attempt;
         }
-      } catch (_) {}
+      } catch (err, stack) {
+        AppLogger.error('quiz_repository', err, stack);
+      }
     }
 
     // 3. Check user completion attempt for this specific window from Supabase
@@ -114,14 +117,18 @@ class QuizRepository {
                 .eq('user_id', userId)
                 .eq('quiz_id', windowInfo.windowId)
                 .maybeSingle();
-          } catch (_) {}
+          } catch (err, stack) {
+            AppLogger.error('quiz_repository', err, stack);
+          }
         }
 
         if (attemptResponse != null) {
           attempt = QuizAttemptResult.fromJson(attemptResponse);
           _memoryQuizAttempts[memoryKey] = attempt;
         }
-      } catch (_) {}
+      } catch (err, stack) {
+        AppLogger.error('quiz_repository', err, stack);
+      }
     }
 
     if (attempt != null) {
@@ -140,12 +147,16 @@ class QuizRepository {
       List<dynamic> response = [];
       try {
         response = await _supabase.from('quiz_questions').select();
-      } catch (_) {}
+      } catch (err, stack) {
+        AppLogger.error('quiz_repository', err, stack);
+      }
 
       if (response.isEmpty) {
         try {
           response = await _supabase.from('question_bank').select();
-        } catch (_) {}
+        } catch (err, stack) {
+          AppLogger.error('quiz_repository', err, stack);
+        }
       }
 
       if (response.isNotEmpty && response.length >= 10) {
@@ -183,7 +194,9 @@ class QuizRepository {
           endTime: windowInfo.windowEnd,
         );
       }
-    } catch (_) {}
+    } catch (err, stack) {
+      AppLogger.error('quiz_repository', err, stack);
+    }
 
     // Fallback to client-side 50-question bank
     quiz ??= QuizEngine.getSampleQuiz(windowInfo: windowInfo);
@@ -232,7 +245,9 @@ class QuizRepository {
               onConflict: 'id',
               ignoreDuplicates: true,
             );
-      } catch (_) {}
+      } catch (err, stack) {
+        AppLogger.error('quiz_repository', err, stack);
+      }
 
       await _supabase.from('user_quizzes').upsert({
         'user_id': userId,
@@ -274,7 +289,9 @@ class QuizRepository {
             .eq('user_id', userId)
             .eq('is_perfect', true);
         perfectCount = (countRes as List).length;
-      } catch (_) {}
+      } catch (err, stack) {
+        AppLogger.error('quiz_repository', err, stack);
+      }
 
       if (perfectCount >= 5) {
         try {
@@ -291,7 +308,9 @@ class QuizRepository {
                 onConflict: 'user_id, badge_name',
                 ignoreDuplicates: true,
               );
-        } catch (_) {}
+        } catch (err, stack) {
+          AppLogger.error('quiz_repository', err, stack);
+        }
       }
     }
 

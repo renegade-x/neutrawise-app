@@ -318,8 +318,17 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             );
       } catch (e) {
         // The log itself is already saved (and queued when offline). Rewards
-        // need a connection, so they are skipped rather than failing the save.
+        // are queued too and applied as soon as the connection is back.
         debugPrint('Could not apply log rewards: $e');
+        await ref
+            .read(syncManagerProvider)
+            .queueRewards(
+              userId: user.id,
+              date: date,
+              isFullLog: isFullLog,
+              logXp: log.xpEarned,
+              co2SavedDelta: savedDelta,
+            );
       }
       final bool rewardsApplied = rewards != null;
 
@@ -388,7 +397,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
               content: Text(
                 rewardsApplied
                     ? 'Log saved! +${log.xpEarned} XP'
-                    : 'Log saved. XP and streak update once you are online.',
+                    : 'Log saved. XP and streak will update when you are back online.',
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: AppColors.success,
@@ -781,6 +790,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                     style: TextStyle(color: AppColors.textPrimary(context)),
                     decoration: InputDecoration(
                       labelText: 'Food Search (Pakistani Dishes & OFF)',
+                      helperText: 'Includes data from Open Food Facts (ODbL)',
                       border: const OutlineInputBorder(),
                       prefixIcon: Icon(
                         Icons.search,
