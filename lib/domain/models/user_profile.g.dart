@@ -22,6 +22,7 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   transportFactor: (json['transport_factor'] as num?)?.toDouble(),
   homeType: json['home_type'] as String?,
   residents: (json['residents'] as num?)?.toInt(),
+  monthlyEnergyKwh: (json['monthly_energy_kwh'] as num?)?.toDouble(),
   heatingType: json['heating_type'] as String?,
   hasSolar: json['has_solar'] as bool?,
   dailyEnergyBaselineKwh: (json['daily_energy_baseline_kwh'] as num?)
@@ -71,6 +72,7 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'transport_factor': instance.transportFactor,
       'home_type': instance.homeType,
       'residents': instance.residents,
+      'monthly_energy_kwh': instance.monthlyEnergyKwh,
       'heating_type': instance.heatingType,
       'has_solar': instance.hasSolar,
       'daily_energy_baseline_kwh': instance.dailyEnergyBaselineKwh,

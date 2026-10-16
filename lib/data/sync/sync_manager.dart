@@ -108,38 +108,15 @@ class SyncManager {
     await syncPendingRewards();
   }
 
-  /// Remembers rewards (XP, streak, CO2 saved) that could not be applied
-  /// because the device was offline. Several offline edits of the same day
-  /// are merged: the latest XP wins and CO2-saved deltas add up.
+  /// Queues a reward request for a saved date that could not reach the server.
+  /// The server re-reads the saved log and derives all reward values.
   Future<void> queueRewards({
     required String userId,
     required String date,
-    required bool isFullLog,
-    required int logXp,
-    required double co2SavedDelta,
   }) async {
     if (!_isInitialized) await init();
     final key = '${userId}_$date';
-    var delta = co2SavedDelta;
-    final existing = _rewardsBox.get(key);
-    if (existing != null) {
-      try {
-        delta += ((jsonDecode(existing) as Map)['co2SavedDelta'] as num)
-            .toDouble();
-      } catch (_) {
-        // Corrupt entry - replace it.
-      }
-    }
-    await _rewardsBox.put(
-      key,
-      jsonEncode({
-        'userId': userId,
-        'date': date,
-        'isFullLog': isFullLog,
-        'logXp': logXp,
-        'co2SavedDelta': delta,
-      }),
-    );
+    await _rewardsBox.put(key, jsonEncode({'userId': userId, 'date': date}));
   }
 
   /// Applies queued rewards for the signed-in user. The server only accepts
@@ -166,12 +143,7 @@ class SyncManager {
           continue;
         }
 
-        await _userRepo.submitLogRewards(
-          date: entry['date'] as String,
-          isFullLog: entry['isFullLog'] as bool? ?? false,
-          logXp: (entry['logXp'] as num?)?.toInt() ?? 0,
-          co2SavedDelta: (entry['co2SavedDelta'] as num?)?.toDouble() ?? 0.0,
-        );
+        await _userRepo.submitLogRewards(date: entry['date'] as String);
         await _rewardsBox.delete(key);
       } catch (e) {
         if (e is PostgrestException && e.code == '22023') {

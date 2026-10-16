@@ -4,7 +4,7 @@ import 'package:neutrawise/domain/gamification/quiz_engine.dart';
 void main() {
   group('QuizEngine Unit Tests (v3.0)', () {
     // Tuesday 12:00 PM (Active Tuesday 48h window: Tue 9 AM -> Thu 9 AM)
-    final now = DateTime(2026, 8, 25, 12, 0);
+    final now = DateTime.utc(2026, 8, 25, 12, 0);
 
     test(
       'XP Calculation: Level 1-4 gets no perfect bonus (max 80 XP), Level 5+ gets +50 XP perfect bonus (max 130 XP)',

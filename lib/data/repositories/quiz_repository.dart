@@ -1,12 +1,6 @@
-import 'dart:convert';
-import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:neutrawise/domain/gamification/quiz_engine.dart';
-import 'package:neutrawise/data/repositories/user_repository.dart';
-import 'package:neutrawise/services/app_logger.dart';
 
 final quizRepositoryProvider = Provider<QuizRepository>((ref) {
   return QuizRepository(Supabase.instance.client);
@@ -22,300 +16,92 @@ final activeQuizProvider = FutureProvider.family<Map<String, dynamic>, String>((
 
 class QuizRepository {
   final SupabaseClient _supabase;
-  final Map<String, QuizAttemptResult> _memoryQuizAttempts = {};
 
   QuizRepository(this._supabase);
 
-  String _toUuid(String input) {
-    final uuidRegex = RegExp(
-      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-    );
-    if (uuidRegex.hasMatch(input)) return input;
-
-    int hash1 = 0x8a9b0c1d;
-    int hash2 = 0xe7f5a1b2;
-    for (int i = 0; i < input.length; i++) {
-      final code = input.codeUnitAt(i);
-      hash1 = ((hash1 << 5) - hash1 + code) & 0xFFFFFFFF;
-      hash2 = ((hash2 << 7) - hash2 + code) & 0xFFFFFFFF;
-    }
-
-    final sb = StringBuffer();
-    for (int i = 0; i < input.length; i++) {
-      sb.write(input.codeUnitAt(i).toRadixString(16).padLeft(2, '0'));
-    }
-    sb.write(hash1.toRadixString(16).padLeft(8, '0'));
-    sb.write(hash2.toRadixString(16).padLeft(8, '0'));
-    sb.write('00000000000000000000000000000000');
-
-    final raw = sb.toString().substring(0, 32);
-    return '${raw.substring(0, 8)}-${raw.substring(8, 12)}-4${raw.substring(13, 16)}-a${raw.substring(17, 20)}-${raw.substring(20, 32)}';
-  }
-
-  /// Fetch active quiz and user attempt data
   Future<Map<String, dynamic>> getActiveQuizData(String userId) async {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final windowInfo = QuizEngine.getQuizWindowInfo(now);
+    final response = Map<String, dynamic>.from(
+      await _supabase.rpc('get_my_quiz_session') as Map,
+    );
 
-    // If outside active 48h windows (Tue 9 AM - Thu 9 AM or Fri 9 AM - Sun 9 AM)
-    if (!windowInfo.isAvailable) {
-      final placeholderQuiz = Quiz(
+    if (response['available'] != true) {
+      final placeholder = Quiz(
         id: windowInfo.windowId,
         title: 'Bi-Weekly Eco Quiz',
         topic: 'Sustainability & Carbon Science',
-        questions: [],
+        questions: const [],
         startTime: windowInfo.windowStart,
         endTime: windowInfo.windowEnd,
       );
       return {
-        'quiz': placeholderQuiz,
+        'quiz': placeholder,
         'attempt': null,
         'status': QuizStatus.expired,
         'windowInfo': windowInfo,
       };
     }
 
-    QuizAttemptResult? attempt;
-    final memoryKey = '$userId:${windowInfo.windowId}';
-
-    // 1. Check in-memory local completed attempts first
-    if (_memoryQuizAttempts.containsKey(memoryKey)) {
-      attempt = _memoryQuizAttempts[memoryKey];
-    }
-
-    // 2. Check local SharedPreferences storage (persists across app restarts)
-    if (attempt == null) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final localData = prefs.getString(
-          'quiz_attempt_${userId}_${windowInfo.windowId}',
-        );
-        if (localData != null) {
-          attempt = QuizAttemptResult.fromJson(jsonDecode(localData));
-          _memoryQuizAttempts[memoryKey] = attempt;
-        }
-      } catch (err, stack) {
-        AppLogger.error('quiz_repository', err, stack);
-      }
-    }
-
-    // 3. Check user completion attempt for this specific window from Supabase
-    if (attempt == null) {
-      try {
-        var attemptResponse = await _supabase
-            .from('user_quizzes')
-            .select()
-            .eq('user_id', userId)
-            .eq('quiz_id', _toUuid(windowInfo.windowId))
-            .maybeSingle();
-
-        if (attemptResponse == null) {
-          try {
-            attemptResponse = await _supabase
-                .from('user_quizzes')
-                .select()
-                .eq('user_id', userId)
-                .eq('quiz_id', windowInfo.windowId)
-                .maybeSingle();
-          } catch (err, stack) {
-            AppLogger.error('quiz_repository', err, stack);
-          }
-        }
-
-        if (attemptResponse != null) {
-          attempt = QuizAttemptResult.fromJson(attemptResponse);
-          _memoryQuizAttempts[memoryKey] = attempt;
-        }
-      } catch (err, stack) {
-        AppLogger.error('quiz_repository', err, stack);
-      }
-    }
-
-    if (attempt != null) {
-      final quiz = QuizEngine.getSampleQuiz(windowInfo: windowInfo);
-      return {
-        'quiz': quiz,
-        'attempt': attempt,
-        'status': QuizStatus.completed,
-        'windowInfo': windowInfo,
-      };
-    }
-
-    // Attempt fetching 10 random questions from Supabase quiz_questions or question_bank
-    Quiz? quiz;
-    try {
-      List<dynamic> response = [];
-      try {
-        response = await _supabase.from('quiz_questions').select();
-      } catch (err, stack) {
-        AppLogger.error('quiz_repository', err, stack);
-      }
-
-      if (response.isEmpty) {
-        try {
-          response = await _supabase.from('question_bank').select();
-        } catch (err, stack) {
-          AppLogger.error('quiz_repository', err, stack);
-        }
-      }
-
-      if (response.isNotEmpty && response.length >= 10) {
-        final allDbQuestions = response.map((item) {
-          final m = Map<String, dynamic>.from(item as Map);
-          List<String> options = [];
-          final rawOpt = m['options'];
-          if (rawOpt is List) {
-            options = List<String>.from(rawOpt);
-          }
+    final localQuestions = {
+      for (final question in QuizEngine.fullQuestionBank) question.id: question,
+    };
+    final questions = (response['questions'] as List<dynamic>? ?? const [])
+        .map((raw) {
+          final row = Map<String, dynamic>.from(raw as Map);
+          final local = localQuestions[row['id'] as String];
           return QuizQuestion(
-            id: m['id'] as String? ?? 'q',
-            category: m['category'] as String? ?? 'General',
-            text: (m['question'] as String?) ?? (m['text'] as String?) ?? '',
-            options: options,
-            correctIndex:
-                (m['correct_index'] as int?) ??
-                (m['correctIndex'] as int?) ??
-                0,
-            explanation: (m['explanation'] as String?) ?? '',
+            id: row['id'] as String,
+            category: row['category'] as String? ?? 'General',
+            text: row['text'] as String? ?? '',
+            options: List<String>.from(row['options'] as List? ?? const []),
+            // The API omits answer keys. The app's existing question bank is
+            // used only for immediate UI feedback; the server grades the
+            // submitted answers against its private key.
+            correctIndex: local?.correctIndex ?? -1,
+            explanation: row['explanation'] as String? ?? '',
           );
-        }).toList();
+        })
+        .toList(growable: false);
 
-        // Select 10 questions deterministically for this window session
-        final rand = Random(windowInfo.windowId.hashCode);
-        allDbQuestions.shuffle(rand);
-        final selectedQuestions = allDbQuestions.take(10).toList();
-
-        quiz = Quiz(
-          id: windowInfo.windowId,
-          title: 'Bi-Weekly Eco Quiz',
-          topic: 'Sustainability & Carbon Science',
-          questions: selectedQuestions,
-          startTime: windowInfo.windowStart,
-          endTime: windowInfo.windowEnd,
-        );
-      }
-    } catch (err, stack) {
-      AppLogger.error('quiz_repository', err, stack);
-    }
-
-    // Fallback to client-side 50-question bank
-    quiz ??= QuizEngine.getSampleQuiz(windowInfo: windowInfo);
+    final quiz = Quiz(
+      id: response['quiz_id'] as String,
+      title: response['title'] as String? ?? 'Bi-Weekly Eco Quiz',
+      topic: response['topic'] as String? ?? 'Sustainability & Carbon Science',
+      questions: questions,
+      startTime: DateTime.parse(response['start_time'] as String).toLocal(),
+      endTime: DateTime.parse(response['end_time'] as String).toLocal(),
+    );
+    final attemptData = response['attempt'];
+    final attempt = attemptData is Map
+        ? QuizAttemptResult.fromJson(Map<String, dynamic>.from(attemptData))
+        : null;
 
     return {
       'quiz': quiz,
-      'attempt': null,
-      'status': QuizStatus.available,
+      'attempt': attempt,
+      'status': attempt == null ? QuizStatus.available : QuizStatus.completed,
       'windowInfo': windowInfo,
     };
   }
 
-  /// Submit quiz attempt and award XP to user profile
-  Future<void> submitQuizAttempt(
+  /// Sends answers only. Score, perfect status, and XP are computed by the
+  /// database from the user's server-issued question set.
+  Future<QuizAttemptResult> submitQuizAttempt(
     String userId,
-    QuizAttemptResult attempt,
+    String quizId,
+    List<int> answers,
     WidgetRef ref,
   ) async {
-    // 0. Instantly record in local memory cache & persistent SharedPreferences
-    final memoryKey = '$userId:${attempt.quizId}';
-    _memoryQuizAttempts[memoryKey] = attempt;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'quiz_attempt_${userId}_${attempt.quizId}',
-        jsonEncode(attempt.toJson()),
-      );
-    } catch (e) {
-      debugPrint('Error saving quiz attempt to SharedPreferences: $e');
-    }
-
-    // 1. Try upserting attempt into user_quizzes table (silently catch errors if table missing)
-    try {
-      // Ensure parent quiz record exists to satisfy foreign key constraint user_quizzes_quiz_id_fkey
-      try {
-        await _supabase
-            .from('quizzes')
-            .upsert(
-              {
-                'id': _toUuid(attempt.quizId),
-                'title': 'Bi-Weekly Eco Quiz',
-                'topic': 'Sustainability & Carbon Science',
-                'questions': [],
-              },
-              onConflict: 'id',
-              ignoreDuplicates: true,
-            );
-      } catch (err, stack) {
-        AppLogger.error('quiz_repository', err, stack);
-      }
-
-      await _supabase.from('user_quizzes').upsert({
-        'user_id': userId,
-        'quiz_id': _toUuid(attempt.quizId),
-        'score': attempt.score,
-        'total_questions': attempt.totalQuestions,
-        'xp_earned': attempt.xpEarned,
-        'is_perfect': attempt.isPerfect,
-        'answers': attempt.answers,
-        'completed_at': attempt.completedAt.toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('Note: user_quizzes upsert skipped/failed: $e');
-    }
-
-    // 2. Award XP through the server. Each quiz pays out once per user, so
-    //    retaking a quiz (or clearing local data) cannot earn XP again.
-    try {
-      if (attempt.xpEarned > 0) {
-        await ref
-            .read(userRepositoryProvider)
-            .awardXp(
-              source: 'quiz',
-              key: _toUuid(attempt.quizId),
-              amount: min(attempt.xpEarned, 130),
-            );
-      }
-    } catch (e) {
-      debugPrint('Error awarding quiz XP: $e');
-    }
-
-    // 3. Check if Quiz Whiz badge is earned (5 perfect quiz scores as per Spec Section 7.2)
-    if (attempt.isPerfect) {
-      int perfectCount = 1;
-      try {
-        final countRes = await _supabase
-            .from('user_quizzes')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('is_perfect', true);
-        perfectCount = (countRes as List).length;
-      } catch (err, stack) {
-        AppLogger.error('quiz_repository', err, stack);
-      }
-
-      if (perfectCount >= 5) {
-        try {
-          await _supabase
-              .from('badges')
-              .upsert(
-                {
-                  'user_id': userId,
-                  'badge_name': 'Quiz Whiz 🧠',
-                  'badge_tier': 'Special',
-                  'category': 'Special',
-                  'earned_at': DateTime.now().toIso8601String(),
-                },
-                onConflict: 'user_id, badge_name',
-                ignoreDuplicates: true,
-              );
-        } catch (err, stack) {
-          AppLogger.error('quiz_repository', err, stack);
-        }
-      }
-    }
-
-    // 4. Invalidate state to trigger UI updates for both Quiz status and User Profile XP
+    final response = Map<String, dynamic>.from(
+      await _supabase.rpc(
+            'submit_my_quiz_attempt',
+            params: {'p_quiz_id': quizId, 'p_answers': answers},
+          )
+          as Map,
+    );
+    final attempt = QuizAttemptResult.fromJson(response);
     ref.invalidate(activeQuizProvider(userId));
-    ref.invalidate(userProfileProvider(userId));
+    return attempt;
   }
 }

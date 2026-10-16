@@ -12,9 +12,40 @@ class ActivityRepository {
   ActivityRepository(this._client);
 
   Future<void> upsertDailyLog(DailyLog log) async {
+    final payload = log.toSupabaseJson();
+    final updatePayload = Map<String, dynamic>.from(payload)
+      ..remove('user_id')
+      ..remove('date');
+    final existing = await _client
+        .from('daily_logs')
+        .select('id')
+        .eq('user_id', log.userId)
+        .eq('date', log.date)
+        .maybeSingle();
+
+    if (existing != null) {
+      await _updateDailyLog(log, updatePayload);
+      return;
+    }
+
+    try {
+      await _client.from('daily_logs').insert(payload);
+    } on PostgrestException catch (error) {
+      // Another request may have inserted this date after the lookup.
+      if (error.code != '23505') rethrow;
+      await _updateDailyLog(log, updatePayload);
+    }
+  }
+
+  Future<void> _updateDailyLog(
+    DailyLog log,
+    Map<String, dynamic> payload,
+  ) async {
     await _client
         .from('daily_logs')
-        .upsert(log.toSupabaseJson(), onConflict: 'user_id, date');
+        .update(payload)
+        .eq('user_id', log.userId)
+        .eq('date', log.date);
   }
 
   Stream<List<DailyLog>> watchRecentLogs(String userId) {

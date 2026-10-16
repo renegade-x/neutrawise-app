@@ -840,10 +840,11 @@ class QuizEngine {
   /// - Tuesday 09:00 AM to Thursday 09:00 AM (48 Hours)
   /// - Friday 09:00 AM to Sunday 09:00 AM (48 Hours)
   static QuizWindowInfo getQuizWindowInfo(DateTime now) {
+    now = now.toUtc();
     // Tuesday 09:00 AM of this week
     final daysFromTue = (now.weekday - DateTime.tuesday) % 7;
     final thisTueDate = now.subtract(Duration(days: daysFromTue));
-    final tueStart = DateTime(
+    final tueStart = DateTime.utc(
       thisTueDate.year,
       thisTueDate.month,
       thisTueDate.day,
@@ -855,7 +856,7 @@ class QuizEngine {
     // Friday 09:00 AM of this week
     final daysFromFri = (now.weekday - DateTime.friday) % 7;
     final thisFriDate = now.subtract(Duration(days: daysFromFri));
-    final friStart = DateTime(
+    final friStart = DateTime.utc(
       thisFriDate.year,
       thisFriDate.month,
       thisFriDate.day,

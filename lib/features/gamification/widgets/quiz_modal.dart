@@ -31,6 +31,7 @@ class _QuizModalState extends ConsumerState<QuizModal> {
   int? _selectedOptionIndex;
   bool _isAnswerSubmitted = false;
   bool _isFinished = false;
+  bool _isSubmitting = false;
 
   void _onOptionSelected(int index) {
     if (_isAnswerSubmitted) return;
@@ -72,30 +73,18 @@ class _QuizModalState extends ConsumerState<QuizModal> {
     return score;
   }
 
-  Future<void> _completeQuiz(
-    int score,
-    Map<String, dynamic> xpBreakdown,
-  ) async {
-    final attempt = QuizAttemptResult(
-      quizId: widget.quiz.id,
-      userId: widget.userId,
-      score: score,
-      totalQuestions: widget.quiz.questions.length,
-      xpEarned: xpBreakdown['totalXp'] as int,
-      isPerfect: xpBreakdown['isPerfect'] as bool,
-      answers: _userAnswers,
-      completedAt: DateTime.now(),
-    );
-
+  Future<void> _completeQuiz() async {
+    setState(() => _isSubmitting = true);
     try {
       await ref
           .read(quizRepositoryProvider)
-          .submitQuizAttempt(widget.userId, attempt, ref);
+          .submitQuizAttempt(widget.userId, widget.quiz.id, _userAnswers, ref);
 
       if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
+      if (mounted) setState(() => _isSubmitting = false);
       if (mounted) {
         ErrorPopup.showFromException(context, e);
       }
@@ -475,10 +464,10 @@ class _QuizModalState extends ConsumerState<QuizModal> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () => _completeQuiz(score, xpBreakdown),
-            child: const Text(
-              'Claim XP & Close',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            onPressed: _isSubmitting ? null : _completeQuiz,
+            child: Text(
+              _isSubmitting ? 'Submitting…' : 'Claim XP & Close',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
         ),

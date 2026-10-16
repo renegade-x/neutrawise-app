@@ -35,7 +35,7 @@ void main() {
       expect(json['id'], 'u1');
       expect(json['name'], 'Eco User');
       expect(json['city'], 'Lahore');
-      expect(json['transport_factor'], 0.23);
+      expect(json.containsKey('transport_factor'), isFalse);
     });
 
     test('drops created_at when it was never set', () {

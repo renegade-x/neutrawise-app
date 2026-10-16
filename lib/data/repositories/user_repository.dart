@@ -184,8 +184,8 @@ class UserRepository {
   }
 
   /// Columns that only the server may change (XP, level, streaks, CO2 totals).
-  /// They are updated through [submitLogRewards] / [awardXp]; direct client
-  /// writes are rejected by database privileges.
+  /// They are updated by the database reward functions; direct client writes
+  /// are rejected by database privileges.
   static const Set<String> serverManagedColumns = {
     'xp',
     'lifetime_xp',
@@ -206,15 +206,27 @@ class UserRepository {
     'daily_xp_from_quiz',
   };
 
-  /// Profile fields a client is allowed to save (everything except the
-  /// server-managed columns above).
+  /// Values derived by the database from editable profile inputs.
+  static const Set<String> serverDerivedProfileColumns = {
+    'transport_factor',
+    'daily_energy_baseline_kwh',
+    'daily_heating_baseline_co2',
+    'daily_energy_baseline_co2',
+    'daily_food_baseline_co2',
+    'total_daily_baseline_co2',
+    'grid_intensity',
+  };
+
+  /// Profile inputs and preferences that the database permits the client to save.
   @visibleForTesting
   static Map<String, dynamic> editableProfileJson(UserProfile profile) {
     final json = Map<String, dynamic>.from(profile.toJson());
-    json.removeWhere((key, _) => serverManagedColumns.contains(key));
-    if (profile.createdAt == null) {
-      json.remove('created_at');
-    }
+    json.removeWhere(
+      (key, _) =>
+          serverManagedColumns.contains(key) ||
+          serverDerivedProfileColumns.contains(key) ||
+          key == 'created_at',
+    );
     return json;
   }
 
@@ -229,20 +241,10 @@ class UserRepository {
   /// Applies the rewards for saving a daily log in one atomic server call:
   /// log XP (replaced per date), streak, streak milestones, freeze handling
   /// and CO2 saved. Returns the updated server-side progression values.
-  Future<Map<String, dynamic>> submitLogRewards({
-    required String date,
-    required bool isFullLog,
-    required int logXp,
-    required double co2SavedDelta,
-  }) async {
+  Future<Map<String, dynamic>> submitLogRewards({required String date}) async {
     final response = await _client.rpc(
       'submit_log_rewards',
-      params: {
-        'p_date': date,
-        'p_is_full_log': isFullLog,
-        'p_log_xp': logXp,
-        'p_co2_saved_delta': co2SavedDelta,
-      },
+      params: {'p_date': date},
     );
     return Map<String, dynamic>.from(response as Map);
   }
@@ -293,19 +295,6 @@ class UserRepository {
   Future<String> exportMyData() async {
     final data = await _client.rpc('export_my_data');
     return const JsonEncoder.withIndent('  ').convert(data);
-  }
-
-  /// Awards quiz or challenge XP. The server pays each [key] only once.
-  Future<Map<String, dynamic>> awardXp({
-    required String source,
-    required String key,
-    required int amount,
-  }) async {
-    final response = await _client.rpc(
-      'award_xp',
-      params: {'p_source': source, 'p_key': key, 'p_amount': amount},
-    );
-    return Map<String, dynamic>.from(response as Map);
   }
 
   Future<Map<String, dynamic>> getNotificationPreferences(String userId) async {

@@ -193,7 +193,10 @@ class EmissionFactors {
       return 'nuts_mixed';
     }
     if (catLower.contains('coffee')) return 'coffee_brewed';
-    if (catLower.contains('tea') || catLower.contains('chai')) return 'tea';
+    if (RegExp(r'(^|[^a-z])tea([^a-z]|$)').hasMatch(catLower) ||
+        catLower.contains('chai')) {
+      return 'tea';
+    }
     if (catLower.contains('potato') || catLower.contains('aloo')) {
       return 'potatoes';
     }

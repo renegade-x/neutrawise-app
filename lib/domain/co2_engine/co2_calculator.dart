@@ -137,7 +137,6 @@ class CO2Calculator {
       final itemCo2 = EmissionFactors.calculateFoodCo2(
         grams: entry.grams,
         category: entry.category,
-        co2Factor: entry.co2Per100g,
       );
       processedFood.add(entry.copyWith(calculatedCo2: itemCo2));
       totalFoodCo2 += itemCo2;
@@ -153,6 +152,8 @@ class CO2Calculator {
       for (var deviation in energyDeviations) {
         if (deviation == 'more_than_usual') {
           deltaKwh += 2.0;
+        } else if (deviation == 'ac_used') {
+          deltaKwh += 5.0;
         } else if (deviation == 'less_than_usual') {
           deltaKwh -= 2.0;
         } else if (deviation == 'no_ac') {

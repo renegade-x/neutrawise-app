@@ -153,11 +153,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             'carnivore',
           ], 'omnivore');
 
-          if (profile.dailyEnergyBaselineKwh != null &&
-              profile.dailyEnergyBaselineKwh! > 0) {
-            _monthlyKwh = (profile.dailyEnergyBaselineKwh! * 30.0);
+          if (profile.monthlyEnergyKwh != null &&
+              profile.monthlyEnergyKwh! > 0) {
+            _monthlyKwh = profile.monthlyEnergyKwh;
             _kwhController.text = _monthlyKwh!.toStringAsFixed(1);
             _monthlyKwhUnknown = false;
+          } else {
+            _monthlyKwhUnknown = true;
+            _kwhController.clear();
           }
         });
       }
@@ -221,6 +224,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 avgDailyKm: _avgDailyKm,
                 homeType: _homeType,
                 residents: _residents,
+                monthlyEnergyKwh: _monthlyKwhUnknown ? null : _monthlyKwh,
                 heatingType: _heatingType,
                 hasSolar: _hasSolar,
                 dietaryPreference: _dietaryPreference,

@@ -50,7 +50,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
     super.initState();
     if (widget.existingLog != null) {
       _transportEntries = List.from(widget.existingLog!.transportEntries);
-      _foodEntries = List.from(widget.existingLog!.foodEntries);
+      _foodEntries = widget.existingLog!.foodEntries
+          .map((entry) => entry.copyWith(co2Per100g: null, calculatedCo2: null))
+          .toList();
       _energyDeviations = List.from(widget.existingLog!.energyDeviations);
       _energyConfirmed =
           widget.existingLog!.energyCo2 > 0 || _energyDeviations.isNotEmpty;
@@ -102,12 +104,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
     return factor * distanceKm;
   }
 
-  double _getFoodItemCo2(String category, double grams, double? co2Per100g) {
-    return EmissionFactors.calculateFoodCo2(
-      grams: grams,
-      category: category,
-      co2Factor: co2Per100g,
-    );
+  double _getFoodItemCo2(String category, double grams) {
+    return EmissionFactors.calculateFoodCo2(grams: grams, category: category);
   }
 
   double _getEnergyCo2(UserProfile? profile) {
@@ -116,6 +114,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
     for (var deviation in _energyDeviations) {
       if (deviation == 'more_than_usual') {
         deltaKwh += 2.0;
+      } else if (deviation == 'ac_used') {
+        deltaKwh += 5.0;
       } else if (deviation == 'less_than_usual') {
         deltaKwh -= 2.0;
       } else if (deviation == 'no_ac') {
@@ -203,9 +203,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       return;
     }
 
-    final co2Factor =
-        _selectedFoodProduct?.co2Per100g ?? _selectedFoodProduct?.co2Total;
-    final calculatedCo2 = _getFoodItemCo2(_foodCategory, grams, co2Factor);
+    final calculatedCo2 = _getFoodItemCo2(_foodCategory, grams);
 
     setState(() {
       _foodEntries.add(
@@ -215,7 +213,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
           category: _foodCategory,
           servingSize: _servingSize,
           grams: grams,
-          co2Per100g: co2Factor,
+          co2Per100g: null,
           calculatedCo2: calculatedCo2,
           offBarcode: _selectedFoodProduct?.id,
         ),
@@ -294,41 +292,20 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
 
       await ref.read(syncManagerProvider).saveLog(log);
 
-      final savedDelta =
-          log.co2SavedVsBaseline -
-          (widget.existingLog?.co2SavedVsBaseline ?? 0.0);
-      final isFullLog =
-          _transportEntries.isNotEmpty &&
-          _foodEntries.isNotEmpty &&
-          _energyConfirmed;
-
       // XP, streak, streak milestones, freeze handling and CO2-saved totals
-      // are applied atomically on the server. The server uses its own date,
-      // pays each milestone once, and replaces (not adds to) the XP for this
-      // date when a log is re-saved.
+      // are derived from the persisted daily log on the server.
       Map<String, dynamic>? rewards;
       try {
         rewards = await ref
             .read(userRepositoryProvider)
-            .submitLogRewards(
-              date: date,
-              isFullLog: isFullLog,
-              logXp: log.xpEarned,
-              co2SavedDelta: savedDelta,
-            );
+            .submitLogRewards(date: date);
       } catch (e) {
         // The log itself is already saved (and queued when offline). Rewards
         // are queued too and applied as soon as the connection is back.
         debugPrint('Could not apply log rewards: $e');
         await ref
             .read(syncManagerProvider)
-            .queueRewards(
-              userId: user.id,
-              date: date,
-              isFullLog: isFullLog,
-              logXp: log.xpEarned,
-              co2SavedDelta: savedDelta,
-            );
+            .queueRewards(userId: user.id, date: date);
       }
       final bool rewardsApplied = rewards != null;
 
@@ -366,7 +343,6 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       final completedChallenges = await gamificationRepo.auditPendingChallenges(
         user.id,
       );
-      await gamificationRepo.evaluateChallengesForUser(user.id, log);
 
       if (mounted && context.mounted) {
         ref.invalidate(recentLogsProvider(user.id));
@@ -433,8 +409,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       0.0,
       (sum, item) =>
           sum +
-          (item.calculatedCo2 ??
-              _getFoodItemCo2(item.category, item.grams, item.co2Per100g)),
+          (item.calculatedCo2 ?? _getFoodItemCo2(item.category, item.grams)),
     );
     final energyCo2Sum = _getEnergyCo2(profile);
     final totalLogCo2 = travelCo2Sum + foodCo2Sum + energyCo2Sum;
@@ -728,10 +703,8 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
 
   Widget _buildFoodTab() {
     final gramsVal = double.tryParse(_foodGramsCtrl.text.trim()) ?? 0.0;
-    final co2Factor =
-        _selectedFoodProduct?.co2Per100g ?? _selectedFoodProduct?.co2Total;
     final liveMealCo2 = gramsVal > 0
-        ? _getFoodItemCo2(_foodCategory, gramsVal, co2Factor)
+        ? _getFoodItemCo2(_foodCategory, gramsVal)
         : 0.0;
 
     return SingleChildScrollView(
@@ -980,9 +953,9 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
                             fontSize: 13,
                           ),
                         ),
-                        if (_selectedFoodProduct != null && co2Factor != null)
+                        if (_selectedFoodProduct != null)
                           Text(
-                            'Using ${_selectedFoodProduct!.source} (${co2Factor > 50 ? (co2Factor / 100).toStringAsFixed(2) : co2Factor.toStringAsFixed(2)} kg CO₂e/kg)',
+                            'Estimate based on the selected food category',
                             style: TextStyle(
                               color: AppColors.textSecondary(context),
                               fontSize: 11,
@@ -1030,11 +1003,7 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
             ..._foodEntries.asMap().entries.map((entry) {
               final mealCo2 =
                   entry.value.calculatedCo2 ??
-                  _getFoodItemCo2(
-                    entry.value.category,
-                    entry.value.grams,
-                    entry.value.co2Per100g,
-                  );
+                  _getFoodItemCo2(entry.value.category, entry.value.grams);
               return Card(
                 color: AppColors.surface(context),
                 margin: const EdgeInsets.only(bottom: 8),
@@ -1093,9 +1062,11 @@ class _ActivityLogSheetState extends ConsumerState<ActivityLogSheet> {
       'Typical Day': 'typical_day',
       'More Than Usual': 'more_than_usual',
       'Less Than Usual': 'less_than_usual',
+      'Used AC': 'ac_used',
       'No AC': 'no_ac',
       'Cold Showers': 'cold_showers',
       'Unplugged Devices': 'unplugged_devices',
+      'Low Screen Time': 'low_screen_time',
       if (!hasSolar) 'Solar Panels (Sunny)': 'solar_panels_sunny',
       if (!hasSolar) 'Solar Panels (Cloudy)': 'solar_panels_cloudy',
     };

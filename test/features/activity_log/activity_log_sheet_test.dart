@@ -141,13 +141,15 @@ void main() {
         );
 
         // Aloo Paratha: (200g * 1.6 / 1000) = 0.32 kg
-        // Daal Chawal: (300g * 0.6 / 1000) = 0.18 kg
-        // Chicken Biryani: (350g * 1.8 / 1000) = 0.63 kg
-        // Total Food CO2 = 0.32 + 0.18 + 0.63 = 1.13 kg
+        // Food CO2 is derived from the normalized category. Client-supplied
+        // CO2 factors are ignored so stored emissions match server rules.
+        // Daal Chawal: (300g * 0.9 / 1000) = 0.27 kg
+        // Chicken Biryani: (350g * 9.9 / 1000) = 3.465 kg
+        // Total Food CO2 = 0.32 + 0.27 + 3.465 = 4.055 kg
         expect(resultLog.foodEntries[0].calculatedCo2, closeTo(0.32, 0.01));
-        expect(resultLog.foodEntries[1].calculatedCo2, closeTo(0.18, 0.01));
-        expect(resultLog.foodEntries[2].calculatedCo2, closeTo(0.63, 0.01));
-        expect(resultLog.foodCo2, closeTo(1.13, 0.01));
+        expect(resultLog.foodEntries[1].calculatedCo2, closeTo(0.27, 0.01));
+        expect(resultLog.foodEntries[2].calculatedCo2, closeTo(3.465, 0.01));
+        expect(resultLog.foodCo2, closeTo(4.055, 0.01));
       },
     );
   });

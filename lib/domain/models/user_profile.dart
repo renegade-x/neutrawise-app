@@ -26,6 +26,7 @@ abstract class UserProfile with _$UserProfile {
     /// Energy profile
     @JsonKey(name: 'home_type') String? homeType,
     int? residents,
+    @JsonKey(name: 'monthly_energy_kwh') double? monthlyEnergyKwh,
     @JsonKey(name: 'heating_type') String? heatingType,
     @JsonKey(name: 'has_solar') bool? hasSolar,
     @JsonKey(name: 'daily_energy_baseline_kwh') double? dailyEnergyBaselineKwh,

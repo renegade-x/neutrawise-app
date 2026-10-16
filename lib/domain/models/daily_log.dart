@@ -77,11 +77,28 @@ abstract class DailyLog with _$DailyLog {
       _$DailyLogFromJson(json);
 
   Map<String, dynamic> toSupabaseJson() {
-    final map = toJson();
-    map.remove('sync_status');
-    map.remove('energy_confirmed');
-    map['transport_entries'] = transportEntries.map((e) => e.toJson()).toList();
-    map['food_entries'] = foodEntries.map((e) => e.toJson()).toList();
-    return map;
+    // Only submit user-reported inputs. The database trigger owns all CO₂,
+    // baseline, percentage, XP, and emission-factor fields.
+    return {
+      'user_id': userId,
+      'date': date,
+      'transport_entries': transportEntries
+          .map((e) => {'mode': e.mode, 'distance_km': e.distanceKm})
+          .toList(),
+      'food_entries': foodEntries
+          .map(
+            (e) => {
+              'meal_slot': e.mealSlot,
+              'food_name': e.foodName,
+              'category': e.category,
+              'serving_size': e.servingSize,
+              'grams': e.grams,
+              'off_barcode': e.offBarcode,
+            },
+          )
+          .toList(),
+      'energy_deviations': energyDeviations,
+      'energy_confirmed': energyConfirmed,
+    };
   }
 }
